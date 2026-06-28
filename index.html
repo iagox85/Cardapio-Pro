@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>XS Delivery</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <!-- HEADER -->
+
+    <header>
+
+        <div class="logo">
+
+            🍔 XS Delivery
+
+        </div>
+
+        <div class="pesquisa">
+
+            <input
+                type="text"
+                placeholder="Pesquisar produto..."
+                id="pesquisa">
+
+        </div>
+
+    </header>
+
+    <!-- BANNER -->
+
+    <section class="banner">
+
+        <div class="banner-texto">
+
+            <h1>Peça seu lanche agora!</h1>
+
+            <p>Entrega rápida • Produtos fresquinhos • Faça seu pedido online.</p>
+
+        </div>
+
+    </section>
+
+    <!-- CATEGORIAS -->
+
+    <section class="categorias">
+
+        <button class="categoria ativa">🍔 Hambúrgueres</button>
+
+        <button class="categoria">🍟 Porções</button>
+
+        <button class="categoria">🥤 Bebidas</button>
+
+        <button class="categoria">🍰 Sobremesas</button>
+
+    </section>
+
+    <!-- CONTEÚDO -->
+
+    <main>
+
+        <!-- PRODUTOS -->
+
+        <section id="produtos">
+
+            <!-- O JavaScript criará os cards -->
+
+        </section>
+
+        <!-- CARRINHO -->
+
+        <aside class="carrinho">
+
+            <h2>
+
+                <i class="fa-solid fa-cart-shopping"></i>
+
+                Carrinho
+
+            </h2>
+
+            <div id="itensCarrinho">
+
+                <p class="vazio">
+
+                    Seu carrinho está vazio.
+
+                </p>
+
+            </div>
+
+            <div class="totais">
+
+                <div>
+
+                    <span>Subtotal</span>
+
+                    <strong id="subtotal">
+
+                        R$ 0,00
+
+                    </strong>
+
+                </div>
+
+                <div>
+
+                    <span>Entrega</span>
+
+                    <strong id="entrega">
+
+                        R$ 5,00
+
+                    </strong>
+
+                </div>
+
+                <div class="total">
+
+                    <span>Total</span>
+
+                    <strong id="total">
+
+                        R$ 5,00
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <h3>Dados para entrega</h3>
+
+            <input
+                type="text"
+                id="nome"
+                placeholder="Nome">
+
+            <input
+                type="tel"
+                id="telefone"
+                placeholder="Telefone">
+
+            <input
+                type="text"
+                id="rua"
+                placeholder="Rua">
+
+            <input
+                type="text"
+                id="numero"
+                placeholder="Número">
+
+            <input
+                type="text"
+                id="bairro"
+                placeholder="Bairro">
+
+            <input
+                type="text"
+                id="complemento"
+                placeholder="Complemento">
+
+            <textarea
+                id="referencia"
+                placeholder="Ponto de referência (opcional)"></textarea>
+
+            <select id="pagamento">
+
+                <option value="PIX">
+
+                    PIX
+
+                </option>
+
+                <option value="Dinheiro">
+
+                    Dinheiro
+
+                </option>
+
+                <option value="Cartão de Crédito">
+
+                    Cartão de Crédito
+
+                </option>
+
+                <option value="Cartão de Débito">
+
+                    Cartão de Débito
+
+                </option>
+
+            </select>
+
+            <input
+                type="number"
+                id="troco"
+                placeholder="Troco para (se dinheiro)">
+
+            <button id="enviarPedido">
+
+                <i class="fa-brands fa-whatsapp"></i>
+
+                Enviar Pedido
+
+            </button>
+
+        </aside>
+
+    </main>
+
+    <!-- RODAPÉ -->
+
+    <footer>
+
+        © 2026 XS Delivery - Todos os direitos reservados.
+
+    </footer>
+
+    <script src="produtos.js"></script>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
