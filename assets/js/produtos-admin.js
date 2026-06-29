@@ -8,13 +8,12 @@ btnNovoProduto.addEventListener("click", () => {
   formProduto.classList.toggle("oculto");
 });
 
-async function carregarLojaDoUsuario() {
+async function carregarLoja() {
   const {
-    data: { user },
-    error: userError
+    data: { user }
   } = await supabaseClient.auth.getUser();
 
-  if (userError || !user) {
+  if (!user) {
     window.location.href = "login.html";
     return;
   }
@@ -26,7 +25,7 @@ async function carregarLojaDoUsuario() {
     .single();
 
   if (error || !data) {
-    alert("Nenhuma loja vinculada a este usuário.");
+    alert("Usuário sem loja vinculada.");
     console.error(error);
     return;
   }
@@ -43,17 +42,17 @@ async function carregarProdutos() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
     listaProdutos.innerHTML = "<p>Erro ao carregar produtos.</p>";
+    console.error(error);
     return;
   }
 
-  if (!data || data.length === 0) {
+  if (!data.length) {
     listaProdutos.innerHTML = "<p>Nenhum produto cadastrado ainda.</p>";
     return;
   }
 
-  listaProdutos.innerHTML = data.map(produto => `
+  listaProdutos.innerHTML = data.map((produto) => `
     <div class="produto-admin-item">
       <div>
         <strong>${produto.nome}</strong>
@@ -71,11 +70,6 @@ async function carregarProdutos() {
 formProduto.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (!lojaAtual) {
-    alert("Loja ainda não carregada.");
-    return;
-  }
-
   const nome = document.getElementById("produtoNome").value.trim();
   const descricao = document.getElementById("produtoDescricao").value.trim();
   const preco = Number(document.getElementById("produtoPreco").value);
@@ -92,8 +86,8 @@ formProduto.addEventListener("submit", async (e) => {
     });
 
   if (error) {
-    console.error(error);
     alert("Erro ao salvar produto.");
+    console.error(error);
     return;
   }
 
@@ -102,4 +96,4 @@ formProduto.addEventListener("submit", async (e) => {
   carregarProdutos();
 });
 
-carregarLojaDoUsuario();
+carregarLoja();
