@@ -14,33 +14,52 @@
     <h2>DeliveryOS</h2>
 
     <nav>
-      <a href="admin.html">Dashboard</a>
-      <a>Pedidos</a>
-      <a class="active" href="produtos.html">Produtos</a>
-      <a>Categorias</a>
-      <a>Adicionais</a>
-      <a>Relatórios</a>
-      <a>Configurações</a>
+      <a href="admin.html">📊 Dashboard</a>
+      <a>📦 Pedidos</a>
+      <a class="active" href="produtos.html">🍔 Produtos</a>
+      <a>📂 Categorias</a>
+      <a>🧀 Adicionais</a>
+      <a>📈 Relatórios</a>
+      <a>⚙️ Configurações</a>
     </nav>
   </aside>
 
   <main class="content">
+
     <header class="topbar">
       <div>
         <h1>Produtos</h1>
         <p>Cadastre, edite e pause produtos da loja.</p>
       </div>
 
-      <button id="sair">Sair</button>
+      <div class="topbar-actions">
+        <button class="notification">🔔</button>
+        <button id="sair">Sair</button>
+      </div>
     </header>
 
     <section class="panel">
       <div class="panel-header">
-        <h2>Lista de produtos</h2>
+        <div>
+          <h2>Lista de produtos</h2>
+          <p class="panel-subtitle">Gerencie o cardápio da sua loja.</p>
+        </div>
+
         <button id="btnNovoProduto">+ Novo produto</button>
       </div>
 
-      <div id="modalProduto" class="modal oculto">
+      <div class="toolbar">
+        <input type="text" id="buscarProduto" placeholder="Buscar produto...">
+      </div>
+
+      <div id="listaProdutos" class="lista-produtos"></div>
+    </section>
+
+  </main>
+
+</div>
+
+<div id="modalProduto" class="modal oculto">
   <div class="modal-content">
     <div class="modal-header">
       <h2>Novo produto</h2>
@@ -55,12 +74,6 @@
       <button type="submit">Salvar produto</button>
     </form>
   </div>
-</div>
-
-      <div id="listaProdutos" class="lista-produtos"></div>
-    </section>
-  </main>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
