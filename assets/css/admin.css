@@ -203,3 +203,6 @@ body {
     gap: 10px;
   }
 }
+.oculto {
+  display: none !important;
+}
