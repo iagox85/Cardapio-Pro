@@ -1,1 +1,22 @@
-/* CSS DO PAINEL ADMIN */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+}
+
+.admin-page {
+  padding: 40px;
+}
+
+.admin-page h1 {
+  color: #d62828;
+}
+
+button {
+  padding: 12px 18px;
+  border: none;
+  background: #d62828;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
