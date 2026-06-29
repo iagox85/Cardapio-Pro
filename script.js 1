@@ -1,0 +1,107 @@
+// ===============================
+// CONFIGURAÇÕES
+// ===============================
+
+const TAXA_ENTREGA = 5.00;
+
+// COLOQUE AQUI O NÚMERO DA LANCHONETE
+const WHATSAPP = "5527999999999";
+
+let carrinho = [];
+
+// ===============================
+// ELEMENTOS
+// ===============================
+
+const areaProdutos = document.getElementById("produtos");
+const pesquisa = document.getElementById("pesquisa");
+
+const subtotalElemento = document.getElementById("subtotal");
+const totalElemento = document.getElementById("total");
+const entregaElemento = document.getElementById("entrega");
+
+const itensCarrinho = document.getElementById("itensCarrinho");
+
+// ===============================
+// FORMATAR MOEDA
+// ===============================
+
+function dinheiro(valor){
+
+    return valor.toLocaleString("pt-BR",{
+
+        style:"currency",
+
+        currency:"BRL"
+
+    });
+
+}
+
+// ===============================
+// MOSTRAR PRODUTOS
+// ===============================
+
+function mostrarProdutos(lista){
+
+    areaProdutos.innerHTML="";
+
+    lista.forEach(produto=>{
+
+        areaProdutos.innerHTML+=`
+
+        <div class="card">
+
+            <img src="${produto.imagem}">
+
+            <div class="card-info">
+
+                <h3>${produto.nome}</h3>
+
+                <p class="descricao">
+
+                    ${produto.descricao}
+
+                </p>
+
+                <div class="preco">
+
+                    ${dinheiro(produto.preco)}
+
+                </div>
+
+                <button onclick="adicionarCarrinho(${produto.id})">
+
+                    Adicionar
+
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
+
+mostrarProdutos(produtos);
+
+// ===============================
+// PESQUISA
+// ===============================
+
+pesquisa.addEventListener("keyup",()=>{
+
+    const texto = pesquisa.value.toLowerCase();
+
+    const filtrados = produtos.filter(produto=>{
+
+        return produto.nome.toLowerCase().includes(texto);
+
+    });
+
+    mostrarProdutos(filtrados);
+
+});
