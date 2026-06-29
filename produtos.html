@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtos - DeliveryOS</title>
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+
+<div class="admin-layout">
+
+  <aside class="sidebar">
+    <h2>DeliveryOS</h2>
+
+    <nav>
+      <a href="admin.html">Dashboard</a>
+      <a>Pedidos</a>
+      <a class="active" href="produtos.html">Produtos</a>
+      <a>Categorias</a>
+      <a>Adicionais</a>
+      <a>Relatórios</a>
+      <a>Configurações</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <h1>Produtos</h1>
+        <p>Cadastre, edite e pause produtos da loja.</p>
+      </div>
+
+      <button id="sair">Sair</button>
+    </header>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Lista de produtos</h2>
+        <button id="btnNovoProduto">+ Novo produto</button>
+      </div>
+
+      <p>Nenhum produto cadastrado ainda.</p>
+    </section>
+  </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/admin.js"></script>
+<script src="assets/js/produtos-admin.js"></script>
+
+</body>
+</html>
