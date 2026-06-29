@@ -1,1 +1,4 @@
-// Conexão com Supabase
+const supabase = window.supabase.createClient(
+  SUPABASE_CONFIG.url,
+  SUPABASE_CONFIG.publishableKey
+);
