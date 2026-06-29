@@ -40,7 +40,15 @@
         <button id="btnNovoProduto">+ Novo produto</button>
       </div>
 
-      <p>Nenhum produto cadastrado ainda.</p>
+      <form id="formProduto" class="form-produto">
+        <input type="text" id="produtoNome" placeholder="Nome do produto" required>
+        <textarea id="produtoDescricao" placeholder="Descrição"></textarea>
+        <input type="number" id="produtoPreco" placeholder="Preço" step="0.01" required>
+
+        <button type="submit">Salvar produto</button>
+      </form>
+
+      <div id="listaProdutos"></div>
     </section>
   </main>
 
