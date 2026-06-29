@@ -1,0 +1,74 @@
+// ===============================
+// FINALIZAR PEDIDO
+// ===============================
+
+const botaoEnviar = document.getElementById("enviarPedido");
+
+botaoEnviar.addEventListener("click", finalizarPedido);
+
+function finalizarPedido(){
+
+    if(carrinho.length === 0){
+        alert("Adicione pelo menos um produto ao carrinho.");
+        return;
+    }
+
+    const nome = document.getElementById("nome").value.trim();
+    const telefone = document.getElementById("telefone").value.trim();
+    const rua = document.getElementById("rua").value.trim();
+    const numero = document.getElementById("numero").value.trim();
+    const bairro = document.getElementById("bairro").value.trim();
+    const complemento = document.getElementById("complemento").value.trim();
+    const referencia = document.getElementById("referencia").value.trim();
+    const pagamento = document.getElementById("pagamento").value;
+    const troco = document.getElementById("troco").value.trim();
+
+    if(!nome || !telefone || !rua || !numero || !bairro){
+        alert("Preencha nome, telefone, rua, número e bairro.");
+        return;
+    }
+
+    let subtotal = carrinho.reduce((soma, item) => {
+        return soma + (item.preco * item.quantidade);
+    }, 0);
+
+    let total = subtotal + TAXA_ENTREGA;
+
+    let listaItens = "";
+
+    carrinho.forEach(item => {
+        listaItens += `• ${item.quantidade}x ${item.nome} - ${dinheiro(item.preco * item.quantidade)}\n`;
+    });
+
+    let textoTroco = "";
+
+    if(pagamento === "Dinheiro"){
+        textoTroco = troco ? `\n💵 Troco para: R$ ${troco}` : `\n💵 Não informou troco`;
+    }
+
+    const mensagem = `
+🍔 *NOVO PEDIDO*
+
+👤 *Cliente:* ${nome}
+📞 *Telefone:* ${telefone}
+
+📍 *Endereço:*
+Rua: ${rua}, Nº ${numero}
+Bairro: ${bairro}
+Complemento: ${complemento || "Não informado"}
+Referência: ${referencia || "Não informado"}
+
+🛒 *Pedido:*
+${listaItens}
+💰 *Subtotal:* ${dinheiro(subtotal)}
+🚚 *Entrega:* ${dinheiro(TAXA_ENTREGA)}
+✅ *Total:* ${dinheiro(total)}
+
+💳 *Pagamento:* ${pagamento}${textoTroco}
+`;
+
+    const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+
+    window.open(url, "_blank");
+
+}
