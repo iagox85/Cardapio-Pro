@@ -9,8 +9,8 @@ formLogin.addEventListener("submit", async (e) => {
 
   mensagemLogin.innerText = "Entrando...";
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email: email,
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email,
     password: senha
   });
 
@@ -19,6 +19,5 @@ formLogin.addEventListener("submit", async (e) => {
     return;
   }
 
-  mensagemLogin.innerText = "Login realizado com sucesso!";
   window.location.href = "admin.html";
 });
