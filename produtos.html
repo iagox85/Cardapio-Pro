@@ -1,4 +1,3 @@
-<form id="formProduto" class="form-produto oculto">
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -41,15 +40,14 @@
         <button id="btnNovoProduto">+ Novo produto</button>
       </div>
 
-      <form id="formProduto" class="form-produto">
+      <form id="formProduto" class="form-produto oculto">
         <input type="text" id="produtoNome" placeholder="Nome do produto" required>
         <textarea id="produtoDescricao" placeholder="Descrição"></textarea>
         <input type="number" id="produtoPreco" placeholder="Preço" step="0.01" required>
-
         <button type="submit">Salvar produto</button>
       </form>
 
-      <div id="listaProdutos"></div>
+      <div id="listaProdutos" class="lista-produtos"></div>
     </section>
   </main>
 
