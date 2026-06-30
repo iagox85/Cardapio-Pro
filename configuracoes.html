@@ -1,1 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurações - DeliveryOS</title>
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
 
+<div class="admin-layout">
+
+  <aside id="sidebar" class="sidebar"></aside>
+
+  <main class="content">
+
+    <header id="topbar" class="topbar"></header>
+
+    <section class="panel">
+
+      <div class="panel-header">
+        <div>
+          <h2>Configurações da Loja</h2>
+          <p class="panel-subtitle">
+            Configure as informações principais da sua loja.
+          </p>
+        </div>
+      </div>
+
+      <form class="form-modal">
+
+        <input
+          type="text"
+          placeholder="Nome da loja"
+        >
+
+        <input
+          type="text"
+          placeholder="Telefone"
+        >
+
+        <input
+          type="text"
+          placeholder="WhatsApp"
+        >
+
+        <input
+          type="text"
+          placeholder="Endereço"
+        >
+
+        <input
+          type="text"
+          placeholder="Cidade"
+        >
+
+        <input
+          type="text"
+          placeholder="CEP"
+        >
+
+        <textarea
+          placeholder="Descrição da loja"></textarea>
+
+        <button type="button">
+          Salvar configurações
+        </button>
+
+      </form>
+
+    </section>
+
+  </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/admin.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/topbar.js"></script>
+
+<script>
+  carregarSidebar("configuracoes");
+  carregarTopbar(
+    "Configurações",
+    "Gerencie as informações da sua loja."
+  );
+</script>
+
+</body>
+</html>
