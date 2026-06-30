@@ -8,7 +8,7 @@ function carregarTopbar(titulo, subtitulo) {
     </div>
 
     <div class="topbar-actions">
-      <button class="notification">🔔</button>
+      <button class="notification">🔔 3</button>
       <button id="sair">Sair</button>
     </div>
   `;
