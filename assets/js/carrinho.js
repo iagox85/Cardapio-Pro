@@ -11,6 +11,7 @@ const finalizarPedido = document.getElementById("finalizarPedido");
 const CHAVE_CARRINHO = "deliveryos_carrinho";
 
 let carrinho = carregarCarrinho();
+let ultimaQuantidadeCarrinho = calcularQuantidadeCarrinho();
 
 function formatarMoeda(valor) {
   return Number(valor || 0).toLocaleString("pt-BR", {
@@ -19,9 +20,24 @@ function formatarMoeda(valor) {
   });
 }
 
+function escaparHTML(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function carregarCarrinho() {
   try {
-    return JSON.parse(localStorage.getItem(CHAVE_CARRINHO)) || [];
+    const dados = JSON.parse(localStorage.getItem(CHAVE_CARRINHO)) || [];
+
+    if (!Array.isArray(dados)) {
+      return [];
+    }
+
+    return dados;
   } catch (error) {
     console.error("Erro ao carregar carrinho:", error);
     return [];
@@ -34,6 +50,7 @@ function salvarCarrinho() {
 
 function calcularSubtotalItem(item) {
   const precoProduto = Number(item.preco_unitario || 0);
+
   const totalAdicionais = (item.adicionais || []).reduce((total, adicional) => {
     return total + Number(adicional.preco || 0);
   }, 0);
@@ -57,11 +74,17 @@ function gerarIdItem() {
   return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function ordenarAdicionais(adicionais = []) {
+  return [...adicionais].sort((a, b) => {
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+
 function adicionaisIguais(adicionaisA = [], adicionaisB = []) {
   if (adicionaisA.length !== adicionaisB.length) return false;
 
-  const idsA = adicionaisA.map((adicional) => adicional.id).sort().join("|");
-  const idsB = adicionaisB.map((adicional) => adicional.id).sort().join("|");
+  const idsA = ordenarAdicionais(adicionaisA).map((adicional) => adicional.id).join("|");
+  const idsB = ordenarAdicionais(adicionaisB).map((adicional) => adicional.id).join("|");
 
   return idsA === idsB;
 }
@@ -76,30 +99,111 @@ function buscarItemIgual(novoItem) {
   });
 }
 
+function normalizarItem(item) {
+  const precoProduto = Number(item.preco_unitario || item.preco || 0);
+  const quantidade = Math.max(1, Number(item.quantidade || 1));
+  const adicionais = Array.isArray(item.adicionais) ? item.adicionais : [];
+
+  const itemNormalizado = {
+    ...item,
+    produto_id: item.produto_id || item.id_produto || item.id,
+    loja_id: item.loja_id || null,
+    nome: item.nome || "Produto",
+    descricao: item.descricao || "",
+    preco_unitario: precoProduto,
+    quantidade,
+    adicionais,
+    observacao: String(item.observacao || "").trim()
+  };
+
+  itemNormalizado.subtotal = calcularSubtotalItem(itemNormalizado);
+
+  return itemNormalizado;
+}
+
+function instalarAnimacoesCarrinho() {
+  if (document.getElementById("deliveryos-carrinho-animacoes")) return;
+
+  const style = document.createElement("style");
+  style.id = "deliveryos-carrinho-animacoes";
+  style.innerHTML = `
+    .deliveryos-carrinho-pulse {
+      animation: deliveryosCarrinhoPulse 0.35s ease;
+    }
+
+    .deliveryos-carrinho-contador-pulse {
+      animation: deliveryosCarrinhoContadorPulse 0.35s ease;
+    }
+
+    .deliveryos-item-entrada {
+      animation: deliveryosItemEntrada 0.25s ease;
+    }
+
+    @keyframes deliveryosCarrinhoPulse {
+      0% { transform: translateY(0) scale(1); }
+      45% { transform: translateY(-3px) scale(1.03); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    @keyframes deliveryosCarrinhoContadorPulse {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes deliveryosItemEntrada {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function animarElemento(elemento, classe) {
+  if (!elemento) return;
+
+  elemento.classList.remove(classe);
+
+  void elemento.offsetWidth;
+
+  elemento.classList.add(classe);
+
+  setTimeout(() => {
+    elemento.classList.remove(classe);
+  }, 450);
+}
+
+function animarCarrinho() {
+  animarElemento(carrinhoResumo, "deliveryos-carrinho-pulse");
+  animarElemento(carrinhoQuantidade, "deliveryos-carrinho-contador-pulse");
+}
+
 function adicionarAoCarrinho(item) {
-  const itemExistente = buscarItemIgual(item);
+  const novoItem = normalizarItem(item);
+  const itemExistente = buscarItemIgual(novoItem);
 
   if (itemExistente) {
-    itemExistente.quantidade += Number(item.quantidade || 1);
+    itemExistente.quantidade += Number(novoItem.quantidade || 1);
     itemExistente.subtotal = calcularSubtotalItem(itemExistente);
   } else {
     carrinho.push({
-      ...item,
+      ...novoItem,
       id: gerarIdItem(),
-      quantidade: Number(item.quantidade || 1),
-      subtotal: calcularSubtotalItem(item)
+      subtotal: calcularSubtotalItem(novoItem)
     });
   }
 
   salvarCarrinho();
-  atualizarCarrinho();
+  atualizarCarrinho(true);
+  animarCarrinho();
   abrirModalCarrinho();
 }
 
 function removerDoCarrinho(itemId) {
   carrinho = carrinho.filter((item) => item.id !== itemId);
   salvarCarrinho();
-  atualizarCarrinho();
+  atualizarCarrinho(true);
 }
 
 function alterarQuantidadeItem(itemId, novaQuantidade) {
@@ -116,16 +220,40 @@ function alterarQuantidadeItem(itemId, novaQuantidade) {
   item.subtotal = calcularSubtotalItem(item);
 
   salvarCarrinho();
-  atualizarCarrinho();
+  atualizarCarrinho(true);
+}
+
+function editarObservacaoItem(itemId) {
+  const item = carrinho.find((produto) => produto.id === itemId);
+
+  if (!item) return;
+
+  const novaObservacao = prompt(
+    "Observação do item:",
+    item.observacao || ""
+  );
+
+  if (novaObservacao === null) return;
+
+  item.observacao = novaObservacao.trim();
+  item.subtotal = calcularSubtotalItem(item);
+
+  salvarCarrinho();
+  atualizarCarrinho(true);
 }
 
 function limparCarrinho() {
+  const confirmar = confirm("Tem certeza que deseja limpar o carrinho?");
+
+  if (!confirmar) return;
+
   carrinho = [];
   salvarCarrinho();
-  atualizarCarrinho();
+  atualizarCarrinho(true);
+  fecharModalCarrinho();
 }
 
-function renderizarItensCarrinho() {
+function renderizarItensCarrinho(animar = false) {
   if (!itensCarrinho) return;
 
   if (!carrinho.length) {
@@ -136,19 +264,19 @@ function renderizarItensCarrinho() {
   itensCarrinho.innerHTML = carrinho.map((item) => {
     const adicionaisHTML = (item.adicionais || []).length
       ? (item.adicionais || []).map((adicional) => {
-          return `<small>+ ${adicional.nome} — ${formatarMoeda(adicional.preco)}</small>`;
+          return `<small>+ ${escaparHTML(adicional.nome)} — ${formatarMoeda(adicional.preco)}</small>`;
         }).join("")
       : `<small>Sem adicionais</small>`;
 
     const observacaoHTML = item.observacao
-      ? `<p><strong>Obs:</strong> ${item.observacao}</p>`
-      : "";
+      ? `<p><strong>Obs:</strong> ${escaparHTML(item.observacao)}</p>`
+      : `<p class="observacao-vazia">Sem observação</p>`;
 
     return `
-      <div class="item-carrinho">
+      <div class="item-carrinho ${animar ? "deliveryos-item-entrada" : ""}">
         <div class="item-carrinho-topo">
           <div>
-            <h3>${item.nome}</h3>
+            <h3>${escaparHTML(item.nome)}</h3>
             <p>${formatarMoeda(item.preco_unitario)}</p>
             ${adicionaisHTML}
             ${observacaoHTML}
@@ -164,9 +292,13 @@ function renderizarItensCarrinho() {
             Remover
           </button>
 
+          <button class="btn-editar-observacao" onclick="DeliveryOSCarrinho.editarObservacao('${item.id}')">
+            Editar obs.
+          </button>
+
           <div class="controle-item">
             <button onclick="DeliveryOSCarrinho.alterarQuantidade('${item.id}', ${Number(item.quantidade || 1) - 1})">-</button>
-            <strong>${item.quantidade}</strong>
+            <strong>${Number(item.quantidade || 1)}</strong>
             <button onclick="DeliveryOSCarrinho.alterarQuantidade('${item.id}', ${Number(item.quantidade || 1) + 1})">+</button>
           </div>
         </div>
@@ -185,6 +317,10 @@ function atualizarResumoCarrinho() {
 
   if (carrinhoQuantidade) {
     carrinhoQuantidade.innerText = quantidade === 1 ? "1 item" : `${quantidade} itens`;
+
+    if (quantidade !== ultimaQuantidadeCarrinho) {
+      animarElemento(carrinhoQuantidade, "deliveryos-carrinho-contador-pulse");
+    }
   }
 
   if (carrinhoTotal) {
@@ -194,45 +330,49 @@ function atualizarResumoCarrinho() {
   if (totalCarrinhoModal) {
     totalCarrinhoModal.innerText = formatarMoeda(total);
   }
+
+  ultimaQuantidadeCarrinho = quantidade;
 }
 
-function atualizarCarrinho() {
-  renderizarItensCarrinho();
+function atualizarCarrinho(animar = false) {
+  renderizarItensCarrinho(animar);
   atualizarResumoCarrinho();
 }
 
 function abrirModalCarrinho() {
   if (!modalCarrinho) return;
+
   atualizarCarrinho();
   modalCarrinho.classList.remove("oculto");
 }
 
 function fecharModalCarrinho() {
   if (!modalCarrinho) return;
+
   modalCarrinho.classList.add("oculto");
 }
 
-function montarMensagemWhatsApp() {
-  let mensagem = "Olá! Quero fazer um pedido:%0A%0A";
+function montarTextoPedido() {
+  let mensagem = "Olá! Quero fazer um pedido:\n\n";
 
   carrinho.forEach((item, index) => {
-    mensagem += `*${index + 1}. ${item.nome}*%0A`;
-    mensagem += `Quantidade: ${item.quantidade}%0A`;
-    mensagem += `Valor: ${formatarMoeda(calcularSubtotalItem(item))}%0A`;
+    mensagem += `*${index + 1}. ${item.nome}*\n`;
+    mensagem += `Quantidade: ${item.quantidade}\n`;
+    mensagem += `Valor: ${formatarMoeda(calcularSubtotalItem(item))}\n`;
 
     if ((item.adicionais || []).length) {
-      mensagem += "Adicionais:%0A";
+      mensagem += "Adicionais:\n";
 
       item.adicionais.forEach((adicional) => {
-        mensagem += `+ ${adicional.nome} - ${formatarMoeda(adicional.preco)}%0A`;
+        mensagem += `+ ${adicional.nome} - ${formatarMoeda(adicional.preco)}\n`;
       });
     }
 
     if (item.observacao) {
-      mensagem += `Obs: ${item.observacao}%0A`;
+      mensagem += `Obs: ${item.observacao}\n`;
     }
 
-    mensagem += "%0A";
+    mensagem += "\n";
   });
 
   mensagem += `*Total: ${formatarMoeda(calcularTotalCarrinho())}*`;
@@ -258,7 +398,10 @@ function finalizarPedidoCarrinho() {
     return;
   }
 
-  const link = `https://wa.me/55${numeroWhatsApp.replace(/^55/, "")}?text=${montarMensagemWhatsApp()}`;
+  const numeroFinal = `55${numeroWhatsApp.replace(/^55/, "")}`;
+  const mensagem = encodeURIComponent(montarTextoPedido());
+  const link = `https://wa.me/${numeroFinal}?text=${mensagem}`;
+
   window.open(link, "_blank");
 }
 
@@ -282,15 +425,19 @@ if (finalizarPedido) {
   finalizarPedido.addEventListener("click", finalizarPedidoCarrinho);
 }
 
+instalarAnimacoesCarrinho();
+
 window.DeliveryOSCarrinho = {
   adicionar: adicionarAoCarrinho,
   remover: removerDoCarrinho,
   alterarQuantidade: alterarQuantidadeItem,
+  editarObservacao: editarObservacaoItem,
   limpar: limparCarrinho,
   abrir: abrirModalCarrinho,
   atualizar: atualizarCarrinho,
   listar: () => carrinho,
-  total: calcularTotalCarrinho
+  total: calcularTotalCarrinho,
+  quantidade: calcularQuantidadeCarrinho
 };
 
 atualizarCarrinho();
