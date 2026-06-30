@@ -5,26 +5,32 @@ const listaProdutos = document.getElementById("listaProdutos");
 const btnNovoProduto = document.getElementById("btnNovoProduto");
 const buscarProduto = document.getElementById("buscarProduto");
 
+const modalTitulo = document.querySelector(".modal-header h2");
+
 let lojaAtual = null;
 let produtosCache = [];
+let produtoEditandoId = null;
 
 btnNovoProduto.addEventListener("click", () => {
+  produtoEditandoId = null;
+  modalTitulo.innerText = "Novo produto";
+  formProduto.reset();
   modalProduto.classList.remove("oculto");
 });
 
-fecharModalProduto.addEventListener("click", () => {
-  modalProduto.classList.add("oculto");
-});
+fecharModalProduto.addEventListener("click", fecharModal);
 
 modalProduto.addEventListener("click", (e) => {
-  if (e.target === modalProduto) {
-    modalProduto.classList.add("oculto");
-  }
+  if (e.target === modalProduto) fecharModal();
 });
 
-buscarProduto.addEventListener("input", () => {
-  renderizarProdutos();
-});
+buscarProduto.addEventListener("input", renderizarProdutos);
+
+function fecharModal() {
+  produtoEditandoId = null;
+  formProduto.reset();
+  modalProduto.classList.add("oculto");
+}
 
 async function carregarLoja() {
   const {
@@ -92,6 +98,10 @@ function renderizarProdutos() {
       <div class="produto-acoes">
         <span>${produto.indisponivel ? "🔴 Indisponível" : "🟢 Disponível"}</span>
 
+        <button onclick="editarProduto('${produto.id}')">
+          Editar
+        </button>
+
         <button onclick="alternarDisponibilidade('${produto.id}', ${produto.indisponivel})">
           ${produto.indisponivel ? "Ativar" : "Pausar"}
         </button>
@@ -104,6 +114,21 @@ function renderizarProdutos() {
   `).join("");
 }
 
+function editarProduto(id) {
+  const produto = produtosCache.find((item) => item.id === id);
+
+  if (!produto) return;
+
+  produtoEditandoId = id;
+  modalTitulo.innerText = "Editar produto";
+
+  document.getElementById("produtoNome").value = produto.nome;
+  document.getElementById("produtoDescricao").value = produto.descricao || "";
+  document.getElementById("produtoPreco").value = produto.preco;
+
+  modalProduto.classList.remove("oculto");
+}
+
 formProduto.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -111,16 +136,34 @@ formProduto.addEventListener("submit", async (e) => {
   const descricao = document.getElementById("produtoDescricao").value.trim();
   const preco = Number(document.getElementById("produtoPreco").value);
 
-  const { error } = await supabaseClient
-    .from("produtos")
-    .insert({
-      loja_id: lojaAtual,
-      nome,
-      descricao,
-      preco,
-      ativo: true,
-      indisponivel: false
-    });
+  let error;
+
+  if (produtoEditandoId) {
+    const resposta = await supabaseClient
+      .from("produtos")
+      .update({
+        nome,
+        descricao,
+        preco
+      })
+      .eq("id", produtoEditandoId)
+      .eq("loja_id", lojaAtual);
+
+    error = resposta.error;
+  } else {
+    const resposta = await supabaseClient
+      .from("produtos")
+      .insert({
+        loja_id: lojaAtual,
+        nome,
+        descricao,
+        preco,
+        ativo: true,
+        indisponivel: false
+      });
+
+    error = resposta.error;
+  }
 
   if (error) {
     alert("Erro ao salvar.");
@@ -128,8 +171,7 @@ formProduto.addEventListener("submit", async (e) => {
     return;
   }
 
-  formProduto.reset();
-  modalProduto.classList.add("oculto");
+  fecharModal();
   carregarProdutos();
 });
 
