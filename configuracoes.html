@@ -22,51 +22,42 @@
         <div>
           <h2>Configurações da Loja</h2>
           <p class="panel-subtitle">
-            Configure as informações principais da sua loja.
+            Atualize os dados que aparecerão no cardápio online.
           </p>
         </div>
       </div>
 
-      <form class="form-modal">
+      <form id="formConfiguracoes" class="form-modal">
 
-        <input
-          type="text"
-          placeholder="Nome da loja"
-        >
+        <input type="text" id="lojaNome" placeholder="Nome da loja" required>
 
-        <input
-          type="text"
-          placeholder="Telefone"
-        >
+        <input type="text" id="lojaTelefone" placeholder="Telefone">
 
-        <input
-          type="text"
-          placeholder="WhatsApp"
-        >
+        <input type="text" id="lojaWhatsapp" placeholder="WhatsApp com DDD">
 
-        <input
-          type="text"
-          placeholder="Endereço"
-        >
+        <input type="text" id="lojaPix" placeholder="Chave PIX">
 
-        <input
-          type="text"
-          placeholder="Cidade"
-        >
+        <input type="text" id="lojaEndereco" placeholder="Endereço">
 
-        <input
-          type="text"
-          placeholder="CEP"
-        >
+        <input type="text" id="lojaCidade" placeholder="Cidade">
 
-        <textarea
-          placeholder="Descrição da loja"></textarea>
+        <input type="text" id="lojaCep" placeholder="CEP">
 
-        <button type="button">
+        <input type="number" id="lojaTaxaEntrega" placeholder="Taxa de entrega" step="0.01">
+
+        <input type="number" id="lojaPedidoMinimo" placeholder="Pedido mínimo" step="0.01">
+
+        <input type="number" id="lojaTempoEntrega" placeholder="Tempo médio de entrega em minutos">
+
+        <textarea id="lojaDescricao" placeholder="Descrição da loja"></textarea>
+
+        <button type="submit">
           Salvar configurações
         </button>
 
       </form>
+
+      <div id="mensagemConfiguracoes"></div>
 
     </section>
 
@@ -85,9 +76,11 @@
   carregarSidebar("configuracoes");
   carregarTopbar(
     "Configurações",
-    "Gerencie as informações da sua loja."
+    "Gerencie as informações principais da sua loja."
   );
 </script>
+
+<script src="assets/js/configuracoes-admin.js"></script>
 
 </body>
 </html>
