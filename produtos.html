@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Produtos - DeliveryOS</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos - DeliveryOS</title>
 
-  <link rel="stylesheet" href="assets/css/admin.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
 
@@ -20,7 +20,8 @@
             <a>📦 Pedidos</a>
             <a class="active" href="produtos.html">🍔 Produtos</a>
             <a href="categorias.html">📂 Categorias</a>
-            <a>🧀 Adicionais</a>
+            <a href="grupos-adicionais.html">📋 Grupos</a>
+            <a href="adicionais.html">🧀 Adicionais</a>
             <a>📈 Relatórios</a>
             <a>⚙️ Configurações</a>
         </nav>
@@ -61,14 +62,19 @@
             </div>
 
             <div class="toolbar">
+
                 <input
                     type="text"
                     id="buscarProduto"
                     placeholder="Buscar produto..."
                 >
+
             </div>
 
-            <div id="listaProdutos" class="lista-produtos"></div>
+            <div
+                id="listaProdutos"
+                class="lista-produtos">
+            </div>
 
         </section>
 
@@ -78,7 +84,9 @@
 
 <!-- MODAL -->
 
-<div id="modalProduto" class="modal oculto">
+<div
+    id="modalProduto"
+    class="modal oculto">
 
     <div class="modal-content">
 
@@ -89,12 +97,16 @@
             <button
                 id="fecharModalProduto"
                 type="button">
+
                 ×
+
             </button>
 
         </div>
 
-        <form id="formProduto" class="form-modal">
+        <form
+            id="formProduto"
+            class="form-modal">
 
             <input
                 type="text"
@@ -123,6 +135,19 @@
                 step="0.01"
                 required
             >
+
+            <div class="campo-grupos">
+
+                <label>
+                    Grupos de adicionais
+                </label>
+
+                <div
+                    id="listaGruposProduto"
+                    class="lista-checkbox">
+                </div>
+
+            </div>
 
             <button type="submit">
                 Salvar Produto
