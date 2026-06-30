@@ -1,1 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos - DeliveryOS</title>
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
 
+<div class="admin-layout">
+  <aside id="sidebar" class="sidebar"></aside>
+
+  <main class="content">
+    <header id="topbar" class="topbar"></header>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Pedidos recebidos</h2>
+          <p class="panel-subtitle">Aqui aparecerão os pedidos feitos pelos clientes.</p>
+        </div>
+      </div>
+
+      <div id="listaPedidos" class="lista-produtos">
+        <p>Nenhum pedido recebido ainda.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/admin.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/topbar.js"></script>
+
+<script>
+  carregarSidebar("pedidos");
+  carregarTopbar("Pedidos", "Acompanhe os pedidos da sua loja em tempo real.");
+</script>
+
+</body>
+</html>
