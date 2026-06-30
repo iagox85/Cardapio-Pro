@@ -1,13 +1,76 @@
-<form id="formAdicional" class="form-modal oculto">
-  <input type="text" id="adicionalNome" placeholder="Nome do adicional" required>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adicionais - DeliveryOS</title>
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
 
-  <textarea id="adicionalDescricao" placeholder="Descrição"></textarea>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <h2>DeliveryOS</h2>
 
-  <select id="adicionalGrupo">
-    <option value="">Selecione um grupo</option>
-  </select>
+    <nav>
+      <a href="admin.html">📊 Dashboard</a>
+      <a>📦 Pedidos</a>
+      <a href="produtos.html">🍔 Produtos</a>
+      <a href="categorias.html">📂 Categorias</a>
+      <a href="grupos-adicionais.html">📋 Grupos</a>
+      <a class="active" href="adicionais.html">🧀 Adicionais</a>
+      <a>📈 Relatórios</a>
+      <a>⚙️ Configurações</a>
+    </nav>
+  </aside>
 
-  <input type="number" id="adicionalPreco" placeholder="Preço" step="0.01" required>
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <h1>Adicionais</h1>
+        <p>Cadastre adicionais e vincule cada um a um grupo.</p>
+      </div>
 
-  <button type="submit">Salvar adicional</button>
-</form>
+      <div class="topbar-actions">
+        <button class="notification">🔔</button>
+        <button id="sair">Sair</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Lista de adicionais</h2>
+          <p class="panel-subtitle">Ex.: Bacon, Cheddar, Ovo, Catupiry.</p>
+        </div>
+
+        <button id="btnNovoAdicional">+ Novo adicional</button>
+      </div>
+
+      <form id="formAdicional" class="form-modal oculto">
+        <input type="text" id="adicionalNome" placeholder="Nome do adicional" required>
+
+        <textarea id="adicionalDescricao" placeholder="Descrição"></textarea>
+
+        <select id="adicionalGrupo">
+          <option value="">Selecione um grupo</option>
+        </select>
+
+        <input type="number" id="adicionalPreco" placeholder="Preço" step="0.01" required>
+
+        <button type="submit">Salvar adicional</button>
+      </form>
+
+      <div id="listaAdicionais" class="lista-produtos"></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/admin.js"></script>
+<script src="assets/js/adicionais-admin.js"></script>
+
+</body>
+</html>
