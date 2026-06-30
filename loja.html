@@ -19,18 +19,15 @@
 </header>
 
 <main class="loja-container">
-
   <section class="categorias-loja" id="categoriasLoja"></section>
 
   <section class="produtos-loja" id="produtosLoja">
     <p>Carregando cardápio...</p>
   </section>
-
 </main>
 
 <div id="modalProduto" class="modal-produto oculto">
   <div class="modal-produto-content">
-
     <button id="fecharModalProduto" class="fechar-modal">×</button>
 
     <h2 id="modalProdutoNome"></h2>
@@ -51,7 +48,25 @@
       Adicionar ao carrinho
       <span id="totalProdutoModal">R$ 0,00</span>
     </button>
+  </div>
+</div>
 
+<div id="modalCarrinho" class="modal-produto oculto">
+  <div class="modal-produto-content">
+    <button id="fecharCarrinho" class="fechar-modal">×</button>
+
+    <h2>Seu carrinho</h2>
+
+    <div id="itensCarrinho" class="itens-carrinho"></div>
+
+    <div class="total-carrinho">
+      <span>Total</span>
+      <strong id="totalCarrinhoModal">R$ 0,00</strong>
+    </div>
+
+    <button id="finalizarPedido" class="btn-adicionar-carrinho">
+      Finalizar pedido
+    </button>
   </div>
 </div>
 
@@ -70,6 +85,7 @@
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/loja.js"></script>
+<script src="assets/js/carrinho.js"></script>
 
 </body>
 </html>
