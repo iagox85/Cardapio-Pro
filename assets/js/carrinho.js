@@ -34,6 +34,7 @@ function salvarCarrinho() {
 
 function calcularSubtotalItem(item) {
   const precoProduto = Number(item.preco_unitario || 0);
+
   const totalAdicionais = (item.adicionais || []).reduce((total, adicional) => {
     return total + Number(adicional.preco || 0);
   }, 0);
@@ -203,12 +204,14 @@ function atualizarCarrinho() {
 
 function abrirModalCarrinho() {
   if (!modalCarrinho) return;
+
   atualizarCarrinho();
   modalCarrinho.classList.remove("oculto");
 }
 
 function fecharModalCarrinho() {
   if (!modalCarrinho) return;
+
   modalCarrinho.classList.add("oculto");
 }
 
