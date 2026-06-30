@@ -197,7 +197,7 @@ function renderizarGruposDoProduto(produto) {
     if (!adicionais.length) return "";
 
     return `
-      <div class="grupo-modal">
+      <div class="grupo-modal" data-grupo-id="${grupo.id}" data-minimo="${grupo.minimo}" data-maximo="${grupo.maximo}">
         <h3>${grupo.nome}</h3>
         <small>
           ${grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : "Opcional"}
@@ -212,6 +212,7 @@ function renderizarGruposDoProduto(produto) {
                 name="grupo-${grupo.id}"
                 value="${adicional.id}"
                 data-preco="${adicional.preco}"
+                onchange="validarLimiteGrupo('${grupo.id}', ${grupo.maximo}, this)"
               >
               ${adicional.nome}
             </div>
@@ -224,6 +225,43 @@ function renderizarGruposDoProduto(produto) {
       </div>
     `;
   }).join("");
+}
+
+function validarLimiteGrupo(grupoId, maximo, inputAtual) {
+  if (!maximo || maximo <= 0) return;
+
+  const selecionados = document.querySelectorAll(
+    `input[name="grupo-${grupoId}"]:checked`
+  );
+
+  if (selecionados.length > maximo) {
+    inputAtual.checked = false;
+    alert(`Você pode escolher no máximo ${maximo} opção(ões) nesse grupo.`);
+  }
+}
+
+function validarMinimosAntesDeAdicionar() {
+  const grupos = document.querySelectorAll(".grupo-modal");
+
+  for (const grupo of grupos) {
+    const grupoId = grupo.dataset.grupoId;
+    const minimo = Number(grupo.dataset.minimo || 0);
+
+    if (minimo <= 0) continue;
+
+    const selecionados = document.querySelectorAll(
+      `input[name="grupo-${grupoId}"]:checked`
+    );
+
+    const nomeGrupo = grupo.querySelector("h3")?.innerText || "grupo";
+
+    if (selecionados.length < minimo) {
+      alert(`Escolha pelo menos ${minimo} opção(ões) em "${nomeGrupo}".`);
+      return false;
+    }
+  }
+
+  return true;
 }
 
 fecharModalProduto.addEventListener("click", () => {
@@ -249,6 +287,8 @@ aumentarQuantidade.addEventListener("click", () => {
 });
 
 adicionarCarrinho.addEventListener("click", () => {
+  if (!validarMinimosAntesDeAdicionar()) return;
+
   alert("Produto adicionado ao carrinho! Próximo passo: carrinho.");
   modalProduto.classList.add("oculto");
 });
