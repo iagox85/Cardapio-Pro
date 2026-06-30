@@ -25,15 +25,6 @@ let categoriaSelecionada = "todas";
 let produtoAtual = null;
 let quantidadeAtual = 1;
 
-function escaparHTML(texto) {
-  return String(texto || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function formatarMoeda(valor) {
   return Number(valor || 0).toLocaleString("pt-BR", {
     style: "currency",
@@ -41,37 +32,61 @@ function formatarMoeda(valor) {
   });
 }
 
+function escaparHTML(valor) {
+  return String(valor || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function obterImagemProduto(produto) {
-  return produto?.imagem_url || produto?.imagem || produto?.foto_url || produto?.foto || "";
+  return (
+    produto?.imagem_url ||
+    produto?.imagem ||
+    produto?.foto_url ||
+    produto?.foto ||
+    ""
+  );
 }
 
-function garantirImagemModalProduto() {
-  let containerImagem = document.getElementById("modalProdutoImagemBox");
+function renderizarImagemProduto(produto, classe = "produto-imagem") {
+  const imagem = obterImagemProduto(produto);
+  const nome = escaparHTML(produto?.nome || "Produto");
 
-  if (containerImagem) return containerImagem;
+  if (imagem) {
+    return `
+      <div class="${classe}">
+        <img src="${escaparHTML(imagem)}" alt="${nome}" loading="lazy">
+      </div>
+    `;
+  }
 
-  const conteudoModal = modalProduto?.querySelector(".modal-produto-content");
-
-  if (!conteudoModal || !modalProdutoNome) return null;
-
-  containerImagem = document.createElement("div");
-  containerImagem.id = "modalProdutoImagemBox";
-  containerImagem.className = "modal-produto-imagem";
-
-  conteudoModal.insertBefore(containerImagem, modalProdutoNome);
-
-  return containerImagem;
+  return `
+    <div class="${classe} produto-sem-foto">
+      <span>Sem foto</span>
+    </div>
+  `;
 }
 
-function aplicarTemaDaLoja(loja) {
-  const corPrimaria = loja?.cor_primaria || loja?.cor_principal || loja?.tema_cor || "";
+function mostrarSkeletonProdutos() {
+  if (!produtosLoja) return;
 
-  if (!corPrimaria) return;
-
-  document.documentElement.style.setProperty("--primary", corPrimaria);
+  produtosLoja.innerHTML = Array.from({ length: 8 }).map(() => `
+    <div class="produto-card skeleton-card">
+      <div class="skeleton skeleton-img"></div>
+      <div class="skeleton skeleton-title"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-price"></div>
+      <div class="skeleton skeleton-button"></div>
+    </div>
+  `).join("");
 }
 
 async function carregarLoja() {
+  mostrarSkeletonProdutos();
+
   const { data, error } = await supabaseClient
     .from("lojas")
     .select("*")
@@ -82,8 +97,9 @@ async function carregarLoja() {
     console.error(error);
     nomeLoja.innerText = "Erro ao carregar loja";
     produtosLoja.innerHTML = `
-      <div class="estado-vazio-cardapio">
-        Não foi possível carregar o cardápio agora.
+      <div class="estado-vazio">
+        <h2>Não foi possível carregar o cardápio</h2>
+        <p>Tente atualizar a página em alguns segundos.</p>
       </div>
     `;
     return;
@@ -91,8 +107,6 @@ async function carregarLoja() {
 
   lojaAtual = data;
   window.DeliveryOSLojaAtual = data;
-
-  aplicarTemaDaLoja(data);
 
   nomeLoja.innerText = data.nome || "Minha Loja";
   descricaoLoja.innerText = data.descricao || "";
@@ -133,6 +147,8 @@ async function carregarCategorias() {
 }
 
 async function carregarProdutos() {
+  mostrarSkeletonProdutos();
+
   const { data, error } = await supabaseClient
     .from("produtos")
     .select(`
@@ -163,8 +179,9 @@ async function carregarProdutos() {
   if (error) {
     console.error(error);
     produtosLoja.innerHTML = `
-      <div class="estado-vazio-cardapio">
-        Erro ao carregar produtos.
+      <div class="estado-vazio">
+        <h2>Erro ao carregar produtos</h2>
+        <p>Atualize a página e tente novamente.</p>
       </div>
     `;
     return;
@@ -181,26 +198,11 @@ function selecionarCategoria(categoriaId, botao) {
     btn.classList.remove("active");
   });
 
-  botao.classList.add("active");
-  renderizarProdutos();
-}
-
-function montarImagemProdutoHTML(produto) {
-  const imagem = obterImagemProduto(produto);
-
-  if (imagem) {
-    return `
-      <div class="produto-card-imagem">
-        <img src="${escaparHTML(imagem)}" alt="${escaparHTML(produto.nome)}" loading="lazy">
-      </div>
-    `;
+  if (botao) {
+    botao.classList.add("active");
   }
 
-  return `
-    <div class="produto-card-imagem produto-card-sem-imagem">
-      <span>Sem foto</span>
-    </div>
-  `;
+  renderizarProdutos();
 }
 
 function renderizarProdutos() {
@@ -212,8 +214,9 @@ function renderizarProdutos() {
 
   if (!produtos.length) {
     produtosLoja.innerHTML = `
-      <div class="estado-vazio-cardapio">
-        Nenhum produto encontrado nessa categoria.
+      <div class="estado-vazio">
+        <h2>Nenhum produto encontrado</h2>
+        <p>Escolha outra categoria ou volte mais tarde.</p>
       </div>
     `;
     return;
@@ -224,24 +227,46 @@ function renderizarProdutos() {
     const descricao = produto.descricao || "";
 
     return `
-      <div class="produto-card ${indisponivel ? "produto-indisponivel" : ""}">
-        ${montarImagemProdutoHTML(produto)}
+      <article class="produto-card ${indisponivel ? "produto-indisponivel" : ""}">
+        ${renderizarImagemProduto(produto)}
 
-        <div class="produto-card-conteudo">
-          <h3>${escaparHTML(produto.nome)}</h3>
-          <p>${descricao ? escaparHTML(descricao) : ""}</p>
-          <strong>${formatarMoeda(produto.preco)}</strong>
+        <div class="produto-card-body">
+          <div class="produto-card-info">
+            <h3>${escaparHTML(produto.nome)}</h3>
+            ${descricao ? `<p>${escaparHTML(descricao)}</p>` : `<p class="produto-sem-descricao">Produto disponível no cardápio.</p>`}
+          </div>
 
-          <button
-            ${indisponivel ? "disabled" : ""}
-            onclick="abrirProduto('${produto.id}')"
-          >
-            ${indisponivel ? "Indisponível" : "+ Adicionar"}
-          </button>
+          <div class="produto-card-footer">
+            <strong>${formatarMoeda(produto.preco)}</strong>
+
+            <button
+              type="button"
+              ${indisponivel ? "disabled" : ""}
+              onclick="abrirProduto('${produto.id}')"
+            >
+              ${indisponivel ? "Indisponível" : "+ Adicionar"}
+            </button>
+          </div>
         </div>
-      </div>
+      </article>
     `;
   }).join("");
+}
+
+function garantirImagemNoModal(produto) {
+  const conteudoModal = modalProduto?.querySelector(".modal-produto-content");
+  if (!conteudoModal) return;
+
+  let areaImagem = document.getElementById("modalProdutoImagemArea");
+
+  if (!areaImagem) {
+    areaImagem = document.createElement("div");
+    areaImagem.id = "modalProdutoImagemArea";
+    areaImagem.className = "modal-produto-imagem-area";
+    conteudoModal.insertBefore(areaImagem, modalProdutoNome);
+  }
+
+  areaImagem.innerHTML = renderizarImagemProduto(produto, "modal-produto-imagem");
 }
 
 function abrirProduto(produtoId) {
@@ -252,20 +277,7 @@ function abrirProduto(produtoId) {
   produtoAtual = produto;
   quantidadeAtual = 1;
 
-  const imagem = obterImagemProduto(produto);
-  const containerImagem = garantirImagemModalProduto();
-
-  if (containerImagem) {
-    if (imagem) {
-      containerImagem.classList.add("ativo");
-      containerImagem.innerHTML = `
-        <img src="${escaparHTML(imagem)}" alt="${escaparHTML(produto.nome)}">
-      `;
-    } else {
-      containerImagem.classList.remove("ativo");
-      containerImagem.innerHTML = "";
-    }
-  }
+  garantirImagemNoModal(produto);
 
   modalProdutoNome.innerText = produto.nome;
   modalProdutoDescricao.innerText = produto.descricao || "";
@@ -300,31 +312,37 @@ function renderizarGruposDoProduto(produto) {
 
     return `
       <div class="grupo-modal" data-grupo-id="${grupo.id}" data-minimo="${grupo.minimo}" data-maximo="${grupo.maximo}">
-        <h3>${escaparHTML(grupo.nome)}</h3>
-        <small>
-          ${grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : "Opcional"}
-          ${grupo.maximo > 0 ? ` • máximo ${grupo.maximo}` : ""}
-        </small>
+        <div class="grupo-modal-header">
+          <div>
+            <h3>${escaparHTML(grupo.nome)}</h3>
+            <small>
+              ${grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : "Opcional"}
+              ${grupo.maximo > 0 ? ` • máximo ${grupo.maximo}` : ""}
+            </small>
+          </div>
+        </div>
 
-        ${adicionais.map((adicional) => `
-          <label class="adicional-opcao">
-            <div>
-              <input
-                type="${grupo.maximo === 1 ? "radio" : "checkbox"}"
-                name="grupo-${grupo.id}"
-                value="${adicional.id}"
-                data-nome="${escaparHTML(adicional.nome)}"
-                data-preco="${adicional.preco}"
-                onchange="aoSelecionarAdicional('${grupo.id}', ${grupo.maximo}, this)"
-              >
-              ${escaparHTML(adicional.nome)}
-            </div>
+        <div class="lista-adicionais-modal">
+          ${adicionais.map((adicional) => `
+            <label class="adicional-opcao">
+              <div>
+                <input
+                  type="${grupo.maximo === 1 ? "radio" : "checkbox"}"
+                  name="grupo-${grupo.id}"
+                  value="${adicional.id}"
+                  data-nome="${escaparHTML(adicional.nome)}"
+                  data-preco="${adicional.preco}"
+                  onchange="aoSelecionarAdicional('${grupo.id}', ${grupo.maximo}, this)"
+                >
+                <span>${escaparHTML(adicional.nome)}</span>
+              </div>
 
-            <span>
-              + ${formatarMoeda(adicional.preco)}
-            </span>
-          </label>
-        `).join("")}
+              <strong>
+                + ${formatarMoeda(adicional.preco)}
+              </strong>
+            </label>
+          `).join("")}
+        </div>
       </div>
     `;
   }).join("");
@@ -396,68 +414,90 @@ function validarMinimosAntesDeAdicionar() {
   return true;
 }
 
-fecharModalProduto.addEventListener("click", () => {
-  modalProduto.classList.add("oculto");
-});
+function animarCarrinhoResumo() {
+  const carrinhoResumo = document.getElementById("carrinhoResumo");
+  if (!carrinhoResumo) return;
 
-modalProduto.addEventListener("click", (e) => {
-  if (e.target === modalProduto) {
+  carrinhoResumo.classList.remove("carrinho-pulse");
+
+  setTimeout(() => {
+    carrinhoResumo.classList.add("carrinho-pulse");
+  }, 20);
+}
+
+if (fecharModalProduto) {
+  fecharModalProduto.addEventListener("click", () => {
     modalProduto.classList.add("oculto");
-  }
-});
+  });
+}
 
-diminuirQuantidade.addEventListener("click", () => {
-  if (quantidadeAtual > 1) {
-    quantidadeAtual--;
+if (modalProduto) {
+  modalProduto.addEventListener("click", (e) => {
+    if (e.target === modalProduto) {
+      modalProduto.classList.add("oculto");
+    }
+  });
+}
+
+if (diminuirQuantidade) {
+  diminuirQuantidade.addEventListener("click", () => {
+    if (quantidadeAtual > 1) {
+      quantidadeAtual--;
+      quantidadeProduto.innerText = quantidadeAtual;
+      atualizarTotalProduto();
+    }
+  });
+}
+
+if (aumentarQuantidade) {
+  aumentarQuantidade.addEventListener("click", () => {
+    quantidadeAtual++;
     quantidadeProduto.innerText = quantidadeAtual;
     atualizarTotalProduto();
-  }
-});
+  });
+}
 
-aumentarQuantidade.addEventListener("click", () => {
-  quantidadeAtual++;
-  quantidadeProduto.innerText = quantidadeAtual;
-  atualizarTotalProduto();
-});
+if (adicionarCarrinho) {
+  adicionarCarrinho.addEventListener("click", () => {
+    if (!produtoAtual) return;
+    if (!validarMinimosAntesDeAdicionar()) return;
 
-adicionarCarrinho.addEventListener("click", () => {
-  if (!produtoAtual) return;
-  if (!validarMinimosAntesDeAdicionar()) return;
+    if (!window.DeliveryOSCarrinho) {
+      alert("Carrinho ainda não carregou. Recarregue a página e tente novamente.");
+      return;
+    }
 
-  if (!window.DeliveryOSCarrinho) {
-    alert("Carrinho ainda não carregou. Recarregue a página e tente novamente.");
-    return;
-  }
+    const adicionaisSelecionados = Array.from(
+      document.querySelectorAll("#modalProdutoGrupos input:checked")
+    ).map((input) => ({
+      id: input.value,
+      nome: input.dataset.nome || "Adicional",
+      preco: Number(input.dataset.preco || 0),
+      grupo_id: input.name.replace("grupo-", "")
+    }));
 
-  const adicionaisSelecionados = Array.from(
-    document.querySelectorAll("#modalProdutoGrupos input:checked")
-  ).map((input) => ({
-    id: input.value,
-    nome: input.dataset.nome || "Adicional",
-    preco: Number(input.dataset.preco || 0),
-    grupo_id: input.name.replace("grupo-", "")
-  }));
+    const precoProduto = Number(produtoAtual.preco || 0);
+    const totalAdicionais = adicionaisSelecionados.reduce((total, adicional) => {
+      return total + Number(adicional.preco || 0);
+    }, 0);
 
-  const precoProduto = Number(produtoAtual.preco || 0);
-  const totalAdicionais = adicionaisSelecionados.reduce((total, adicional) => {
-    return total + Number(adicional.preco || 0);
-  }, 0);
+    const itemCarrinho = {
+      produto_id: produtoAtual.id,
+      loja_id: produtoAtual.loja_id,
+      nome: produtoAtual.nome,
+      descricao: produtoAtual.descricao || "",
+      imagem_url: obterImagemProduto(produtoAtual),
+      preco_unitario: precoProduto,
+      quantidade: quantidadeAtual,
+      adicionais: adicionaisSelecionados,
+      observacao: observacaoProduto.value.trim(),
+      subtotal: (precoProduto + totalAdicionais) * quantidadeAtual
+    };
 
-  const itemCarrinho = {
-    produto_id: produtoAtual.id,
-    loja_id: produtoAtual.loja_id,
-    nome: produtoAtual.nome,
-    descricao: produtoAtual.descricao || "",
-    imagem_url: obterImagemProduto(produtoAtual),
-    preco_unitario: precoProduto,
-    quantidade: quantidadeAtual,
-    adicionais: adicionaisSelecionados,
-    observacao: observacaoProduto.value.trim(),
-    subtotal: (precoProduto + totalAdicionais) * quantidadeAtual
-  };
-
-  window.DeliveryOSCarrinho.adicionar(itemCarrinho);
-  modalProduto.classList.add("oculto");
-});
+    window.DeliveryOSCarrinho.adicionar(itemCarrinho);
+    animarCarrinhoResumo();
+    modalProduto.classList.add("oculto");
+  });
+}
 
 carregarLoja();
