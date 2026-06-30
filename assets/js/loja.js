@@ -25,6 +25,118 @@ let categoriaSelecionada = "todas";
 let produtoAtual = null;
 let quantidadeAtual = 1;
 
+function escaparHTML(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function obterImagemProduto(produto) {
+  return produto?.imagem_url || produto?.imagem || produto?.foto_url || produto?.foto || "";
+}
+
+function instalarEstilosImagemProduto() {
+  if (document.getElementById("deliveryos-loja-imagens-estilos")) return;
+
+  const style = document.createElement("style");
+  style.id = "deliveryos-loja-imagens-estilos";
+  style.innerHTML = `
+    .produto-card {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .produto-card-imagem {
+      width: calc(100% + 36px);
+      height: 150px;
+      margin: -18px -18px 16px;
+      background: #f3f4f6;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .produto-card-imagem img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .produto-card-sem-imagem {
+      background: linear-gradient(135deg, #f9fafb, #fee2e2);
+    }
+
+    .produto-card-conteudo {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .produto-card-conteudo button {
+      margin-top: auto;
+    }
+
+    .modal-produto-imagem {
+      width: calc(100% + 52px);
+      height: 220px;
+      margin: -26px -26px 22px;
+      background: #f3f4f6;
+      overflow: hidden;
+      display: none;
+    }
+
+    .modal-produto-imagem.ativo {
+      display: block;
+    }
+
+    .modal-produto-imagem img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      .produto-card-imagem {
+        height: 135px;
+      }
+
+      .modal-produto-imagem {
+        height: 190px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function garantirImagemModalProduto() {
+  let containerImagem = document.getElementById("modalProdutoImagemBox");
+
+  if (containerImagem) return containerImagem;
+
+  const conteudoModal = modalProduto?.querySelector(".modal-produto-content");
+
+  if (!conteudoModal || !modalProdutoNome) return null;
+
+  containerImagem = document.createElement("div");
+  containerImagem.id = "modalProdutoImagemBox";
+  containerImagem.className = "modal-produto-imagem";
+
+  conteudoModal.insertBefore(containerImagem, modalProdutoNome);
+
+  return containerImagem;
+}
+
 async function carregarLoja() {
   const { data, error } = await supabaseClient
     .from("lojas")
@@ -142,19 +254,36 @@ function renderizarProdutos() {
 
   produtosLoja.innerHTML = produtos.map((produto) => {
     const indisponivel = produto.indisponivel;
+    const imagem = obterImagemProduto(produto);
+
+    const imagemHTML = imagem
+      ? `
+        <div class="produto-card-imagem">
+          <img src="${escaparHTML(imagem)}" alt="${escaparHTML(produto.nome)}">
+        </div>
+      `
+      : `
+        <div class="produto-card-imagem produto-card-sem-imagem">
+          <span>Sem foto</span>
+        </div>
+      `;
 
     return `
       <div class="produto-card ${indisponivel ? "produto-indisponivel" : ""}">
-        <h3>${produto.nome}</h3>
-        <p>${produto.descricao || ""}</p>
-        <strong>R$ ${Number(produto.preco).toFixed(2)}</strong>
+        ${imagemHTML}
 
-        <button
-          ${indisponivel ? "disabled" : ""}
-          onclick="abrirProduto('${produto.id}')"
-        >
-          ${indisponivel ? "Indisponível" : "Adicionar"}
-        </button>
+        <div class="produto-card-conteudo">
+          <h3>${escaparHTML(produto.nome)}</h3>
+          <p>${escaparHTML(produto.descricao || "")}</p>
+          <strong>R$ ${Number(produto.preco).toFixed(2)}</strong>
+
+          <button
+            ${indisponivel ? "disabled" : ""}
+            onclick="abrirProduto('${produto.id}')"
+          >
+            ${indisponivel ? "Indisponível" : "Adicionar"}
+          </button>
+        </div>
       </div>
     `;
   }).join("");
@@ -167,6 +296,21 @@ function abrirProduto(produtoId) {
 
   produtoAtual = produto;
   quantidadeAtual = 1;
+
+  const imagem = obterImagemProduto(produto);
+  const containerImagem = garantirImagemModalProduto();
+
+  if (containerImagem) {
+    if (imagem) {
+      containerImagem.classList.add("ativo");
+      containerImagem.innerHTML = `
+        <img src="${escaparHTML(imagem)}" alt="${escaparHTML(produto.nome)}">
+      `;
+    } else {
+      containerImagem.classList.remove("ativo");
+      containerImagem.innerHTML = "";
+    }
+  }
 
   modalProdutoNome.innerText = produto.nome;
   modalProdutoDescricao.innerText = produto.descricao || "";
@@ -349,6 +493,7 @@ adicionarCarrinho.addEventListener("click", () => {
     loja_id: produtoAtual.loja_id,
     nome: produtoAtual.nome,
     descricao: produtoAtual.descricao || "",
+    imagem_url: obterImagemProduto(produtoAtual),
     preco_unitario: precoProduto,
     quantidade: quantidadeAtual,
     adicionais: adicionaisSelecionados,
@@ -360,4 +505,5 @@ adicionarCarrinho.addEventListener("click", () => {
   modalProduto.classList.add("oculto");
 });
 
+instalarEstilosImagemProduto();
 carregarLoja();
