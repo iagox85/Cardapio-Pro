@@ -34,89 +34,15 @@ function escaparHTML(texto) {
     .replaceAll("'", "&#039;");
 }
 
-function obterImagemProduto(produto) {
-  return produto?.imagem_url || produto?.imagem || produto?.foto_url || produto?.foto || "";
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
 }
 
-function instalarEstilosImagemProduto() {
-  if (document.getElementById("deliveryos-loja-imagens-estilos")) return;
-
-  const style = document.createElement("style");
-  style.id = "deliveryos-loja-imagens-estilos";
-  style.innerHTML = `
-    .produto-card {
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .produto-card-imagem {
-      width: calc(100% + 36px);
-      height: 150px;
-      margin: -18px -18px 16px;
-      background: #f3f4f6;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #9ca3af;
-      font-size: 13px;
-      font-weight: bold;
-    }
-
-    .produto-card-imagem img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .produto-card-sem-imagem {
-      background: linear-gradient(135deg, #f9fafb, #fee2e2);
-    }
-
-    .produto-card-conteudo {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-    }
-
-    .produto-card-conteudo button {
-      margin-top: auto;
-    }
-
-    .modal-produto-imagem {
-      width: calc(100% + 52px);
-      height: 220px;
-      margin: -26px -26px 22px;
-      background: #f3f4f6;
-      overflow: hidden;
-      display: none;
-    }
-
-    .modal-produto-imagem.ativo {
-      display: block;
-    }
-
-    .modal-produto-imagem img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    @media (max-width: 640px) {
-      .produto-card-imagem {
-        height: 135px;
-      }
-
-      .modal-produto-imagem {
-        height: 190px;
-      }
-    }
-  `;
-
-  document.head.appendChild(style);
+function obterImagemProduto(produto) {
+  return produto?.imagem_url || produto?.imagem || produto?.foto_url || produto?.foto || "";
 }
 
 function garantirImagemModalProduto() {
@@ -137,6 +63,14 @@ function garantirImagemModalProduto() {
   return containerImagem;
 }
 
+function aplicarTemaDaLoja(loja) {
+  const corPrimaria = loja?.cor_primaria || loja?.cor_principal || loja?.tema_cor || "";
+
+  if (!corPrimaria) return;
+
+  document.documentElement.style.setProperty("--primary", corPrimaria);
+}
+
 async function carregarLoja() {
   const { data, error } = await supabaseClient
     .from("lojas")
@@ -147,11 +81,18 @@ async function carregarLoja() {
   if (error || !data) {
     console.error(error);
     nomeLoja.innerText = "Erro ao carregar loja";
+    produtosLoja.innerHTML = `
+      <div class="estado-vazio-cardapio">
+        Não foi possível carregar o cardápio agora.
+      </div>
+    `;
     return;
   }
 
   lojaAtual = data;
   window.DeliveryOSLojaAtual = data;
+
+  aplicarTemaDaLoja(data);
 
   nomeLoja.innerText = data.nome || "Minha Loja";
   descricaoLoja.innerText = data.descricao || "";
@@ -185,7 +126,7 @@ async function carregarCategorias() {
   categoriasCache.forEach((categoria) => {
     categoriasLoja.innerHTML += `
       <button onclick="selecionarCategoria('${categoria.id}', this)">
-        ${categoria.nome}
+        ${escaparHTML(categoria.nome)}
       </button>
     `;
   });
@@ -221,7 +162,11 @@ async function carregarProdutos() {
 
   if (error) {
     console.error(error);
-    produtosLoja.innerHTML = "<p>Erro ao carregar produtos.</p>";
+    produtosLoja.innerHTML = `
+      <div class="estado-vazio-cardapio">
+        Erro ao carregar produtos.
+      </div>
+    `;
     return;
   }
 
@@ -240,6 +185,24 @@ function selecionarCategoria(categoriaId, botao) {
   renderizarProdutos();
 }
 
+function montarImagemProdutoHTML(produto) {
+  const imagem = obterImagemProduto(produto);
+
+  if (imagem) {
+    return `
+      <div class="produto-card-imagem">
+        <img src="${escaparHTML(imagem)}" alt="${escaparHTML(produto.nome)}" loading="lazy">
+      </div>
+    `;
+  }
+
+  return `
+    <div class="produto-card-imagem produto-card-sem-imagem">
+      <span>Sem foto</span>
+    </div>
+  `;
+}
+
 function renderizarProdutos() {
   let produtos = produtosCache;
 
@@ -248,40 +211,32 @@ function renderizarProdutos() {
   }
 
   if (!produtos.length) {
-    produtosLoja.innerHTML = "<p>Nenhum produto encontrado.</p>";
+    produtosLoja.innerHTML = `
+      <div class="estado-vazio-cardapio">
+        Nenhum produto encontrado nessa categoria.
+      </div>
+    `;
     return;
   }
 
   produtosLoja.innerHTML = produtos.map((produto) => {
     const indisponivel = produto.indisponivel;
-    const imagem = obterImagemProduto(produto);
-
-    const imagemHTML = imagem
-      ? `
-        <div class="produto-card-imagem">
-          <img src="${escaparHTML(imagem)}" alt="${escaparHTML(produto.nome)}">
-        </div>
-      `
-      : `
-        <div class="produto-card-imagem produto-card-sem-imagem">
-          <span>Sem foto</span>
-        </div>
-      `;
+    const descricao = produto.descricao || "";
 
     return `
       <div class="produto-card ${indisponivel ? "produto-indisponivel" : ""}">
-        ${imagemHTML}
+        ${montarImagemProdutoHTML(produto)}
 
         <div class="produto-card-conteudo">
           <h3>${escaparHTML(produto.nome)}</h3>
-          <p>${escaparHTML(produto.descricao || "")}</p>
-          <strong>R$ ${Number(produto.preco).toFixed(2)}</strong>
+          <p>${descricao ? escaparHTML(descricao) : ""}</p>
+          <strong>${formatarMoeda(produto.preco)}</strong>
 
           <button
             ${indisponivel ? "disabled" : ""}
             onclick="abrirProduto('${produto.id}')"
           >
-            ${indisponivel ? "Indisponível" : "Adicionar"}
+            ${indisponivel ? "Indisponível" : "+ Adicionar"}
           </button>
         </div>
       </div>
@@ -314,7 +269,7 @@ function abrirProduto(produtoId) {
 
   modalProdutoNome.innerText = produto.nome;
   modalProdutoDescricao.innerText = produto.descricao || "";
-  modalProdutoPreco.innerText = `R$ ${Number(produto.preco).toFixed(2)}`;
+  modalProdutoPreco.innerText = formatarMoeda(produto.preco);
   quantidadeProduto.innerText = quantidadeAtual;
   observacaoProduto.value = "";
 
@@ -345,7 +300,7 @@ function renderizarGruposDoProduto(produto) {
 
     return `
       <div class="grupo-modal" data-grupo-id="${grupo.id}" data-minimo="${grupo.minimo}" data-maximo="${grupo.maximo}">
-        <h3>${grupo.nome}</h3>
+        <h3>${escaparHTML(grupo.nome)}</h3>
         <small>
           ${grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : "Opcional"}
           ${grupo.maximo > 0 ? ` • máximo ${grupo.maximo}` : ""}
@@ -358,15 +313,15 @@ function renderizarGruposDoProduto(produto) {
                 type="${grupo.maximo === 1 ? "radio" : "checkbox"}"
                 name="grupo-${grupo.id}"
                 value="${adicional.id}"
-                data-nome="${adicional.nome}"
+                data-nome="${escaparHTML(adicional.nome)}"
                 data-preco="${adicional.preco}"
                 onchange="aoSelecionarAdicional('${grupo.id}', ${grupo.maximo}, this)"
               >
-              ${adicional.nome}
+              ${escaparHTML(adicional.nome)}
             </div>
 
             <span>
-              + R$ ${Number(adicional.preco).toFixed(2)}
+              + ${formatarMoeda(adicional.preco)}
             </span>
           </label>
         `).join("")}
@@ -414,7 +369,7 @@ function atualizarTotalProduto() {
   const totalAdicionais = calcularAdicionaisSelecionados();
   const total = (precoProduto + totalAdicionais) * quantidadeAtual;
 
-  totalProdutoModal.innerText = `R$ ${total.toFixed(2)}`;
+  totalProdutoModal.innerText = formatarMoeda(total);
 }
 
 function validarMinimosAntesDeAdicionar() {
@@ -505,5 +460,4 @@ adicionarCarrinho.addEventListener("click", () => {
   modalProduto.classList.add("oculto");
 });
 
-instalarEstilosImagemProduto();
 carregarLoja();
