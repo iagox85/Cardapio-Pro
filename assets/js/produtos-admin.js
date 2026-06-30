@@ -4,16 +4,18 @@ const formProduto = document.getElementById("formProduto");
 const listaProdutos = document.getElementById("listaProdutos");
 const btnNovoProduto = document.getElementById("btnNovoProduto");
 const buscarProduto = document.getElementById("buscarProduto");
+const produtoCategoria = document.getElementById("produtoCategoria");
 
 const modalTitulo = document.querySelector(".modal-header h2");
 
 let lojaAtual = null;
 let produtosCache = [];
+let categoriasCache = [];
 let produtoEditandoId = null;
 
 btnNovoProduto.addEventListener("click", () => {
   produtoEditandoId = null;
-  modalTitulo.innerText = "Novo produto";
+  modalTitulo.innerText = "Novo Produto";
   formProduto.reset();
   modalProduto.classList.remove("oculto");
 });
@@ -55,13 +57,48 @@ async function carregarLoja() {
   }
 
   lojaAtual = data.loja_id;
-  carregarProdutos();
+
+  await carregarCategorias();
+  await carregarProdutos();
+}
+
+async function carregarCategorias() {
+  const { data, error } = await supabaseClient
+    .from("categorias")
+    .select("*")
+    .eq("loja_id", lojaAtual)
+    .eq("ativo", true)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  categoriasCache = data || [];
+
+  produtoCategoria.innerHTML = `
+    <option value="">Selecione uma categoria</option>
+  `;
+
+  categoriasCache.forEach((categoria) => {
+    produtoCategoria.innerHTML += `
+      <option value="${categoria.id}">
+        ${categoria.nome}
+      </option>
+    `;
+  });
 }
 
 async function carregarProdutos() {
   const { data, error } = await supabaseClient
     .from("produtos")
-    .select("*")
+    .select(`
+      *,
+      categorias (
+        nome
+      )
+    `)
     .eq("loja_id", lojaAtual)
     .order("created_at", { ascending: false });
 
@@ -79,7 +116,15 @@ function renderizarProdutos() {
   const termo = buscarProduto.value.toLowerCase().trim();
 
   const produtosFiltrados = produtosCache.filter((produto) => {
-    return produto.nome.toLowerCase().includes(termo);
+    const nome = produto.nome?.toLowerCase() || "";
+    const descricao = produto.descricao?.toLowerCase() || "";
+    const categoria = produto.categorias?.nome?.toLowerCase() || "";
+
+    return (
+      nome.includes(termo) ||
+      descricao.includes(termo) ||
+      categoria.includes(termo)
+    );
   });
 
   if (!produtosFiltrados.length) {
@@ -87,31 +132,36 @@ function renderizarProdutos() {
     return;
   }
 
-  listaProdutos.innerHTML = produtosFiltrados.map((produto) => `
-    <div class="produto-admin-item">
-      <div>
-        <strong>${produto.nome}</strong>
-        <p>${produto.descricao || ""}</p>
-        <span>R$ ${Number(produto.preco).toFixed(2)}</span>
+  listaProdutos.innerHTML = produtosFiltrados.map((produto) => {
+    const categoriaNome = produto.categorias?.nome || "Sem categoria";
+
+    return `
+      <div class="produto-admin-item">
+        <div>
+          <strong>${produto.nome}</strong>
+          <p>${produto.descricao || ""}</p>
+          <p><small>Categoria: ${categoriaNome}</small></p>
+          <span>R$ ${Number(produto.preco).toFixed(2)}</span>
+        </div>
+
+        <div class="produto-acoes">
+          <span>${produto.indisponivel ? "🔴 Indisponível" : "🟢 Disponível"}</span>
+
+          <button onclick="editarProduto('${produto.id}')">
+            Editar
+          </button>
+
+          <button onclick="alternarDisponibilidade('${produto.id}', ${produto.indisponivel})">
+            ${produto.indisponivel ? "Ativar" : "Pausar"}
+          </button>
+
+          <button class="btn-excluir" onclick="excluirProduto('${produto.id}')">
+            Excluir
+          </button>
+        </div>
       </div>
-
-      <div class="produto-acoes">
-        <span>${produto.indisponivel ? "🔴 Indisponível" : "🟢 Disponível"}</span>
-
-        <button onclick="editarProduto('${produto.id}')">
-          Editar
-        </button>
-
-        <button onclick="alternarDisponibilidade('${produto.id}', ${produto.indisponivel})">
-          ${produto.indisponivel ? "Ativar" : "Pausar"}
-        </button>
-
-        <button class="btn-excluir" onclick="excluirProduto('${produto.id}')">
-          Excluir
-        </button>
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 function editarProduto(id) {
@@ -120,11 +170,12 @@ function editarProduto(id) {
   if (!produto) return;
 
   produtoEditandoId = id;
-  modalTitulo.innerText = "Editar produto";
+  modalTitulo.innerText = "Editar Produto";
 
   document.getElementById("produtoNome").value = produto.nome;
   document.getElementById("produtoDescricao").value = produto.descricao || "";
   document.getElementById("produtoPreco").value = produto.preco;
+  produtoCategoria.value = produto.categoria_id || "";
 
   modalProduto.classList.remove("oculto");
 }
@@ -135,6 +186,7 @@ formProduto.addEventListener("submit", async (e) => {
   const nome = document.getElementById("produtoNome").value.trim();
   const descricao = document.getElementById("produtoDescricao").value.trim();
   const preco = Number(document.getElementById("produtoPreco").value);
+  const categoriaId = produtoCategoria.value || null;
 
   let error;
 
@@ -144,7 +196,8 @@ formProduto.addEventListener("submit", async (e) => {
       .update({
         nome,
         descricao,
-        preco
+        preco,
+        categoria_id: categoriaId
       })
       .eq("id", produtoEditandoId)
       .eq("loja_id", lojaAtual);
@@ -155,6 +208,7 @@ formProduto.addEventListener("submit", async (e) => {
       .from("produtos")
       .insert({
         loja_id: lojaAtual,
+        categoria_id: categoriaId,
         nome,
         descricao,
         preco,
@@ -166,7 +220,7 @@ formProduto.addEventListener("submit", async (e) => {
   }
 
   if (error) {
-    alert("Erro ao salvar.");
+    alert("Erro ao salvar produto.");
     console.error(error);
     return;
   }
@@ -201,7 +255,7 @@ async function excluirProduto(id) {
     .eq("loja_id", lojaAtual);
 
   if (error) {
-    alert("Erro ao excluir.");
+    alert("Erro ao excluir produto.");
     console.error(error);
     return;
   }
