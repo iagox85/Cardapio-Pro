@@ -1,172 +1,87 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Produtos - DeliveryOS</title>
-
-    <link rel="stylesheet" href="assets/css/admin.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtos - DeliveryOS</title>
+  <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
 
 <div class="admin-layout">
 
-    <aside class="sidebar">
+  <aside id="sidebar" class="sidebar"></aside>
 
-        <h2>DeliveryOS</h2>
+  <main class="content">
 
-        <nav>
-            <a href="admin.html">📊 Dashboard</a>
-            <a>📦 Pedidos</a>
-            <a class="active" href="produtos.html">🍔 Produtos</a>
-            <a href="categorias.html">📂 Categorias</a>
-            <a href="grupos-adicionais.html">📋 Grupos</a>
-            <a href="adicionais.html">🧀 Adicionais</a>
-            <a>📈 Relatórios</a>
-            <a>⚙️ Configurações</a>
-        </nav>
+    <header class="topbar">
+      <div>
+        <h1>Produtos</h1>
+        <p>Cadastre, edite e organize os produtos da sua loja.</p>
+      </div>
 
-    </aside>
+      <div class="topbar-actions">
+        <button class="notification">🔔</button>
+        <button id="sair">Sair</button>
+      </div>
+    </header>
 
-    <main class="content">
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Lista de produtos</h2>
+          <p class="panel-subtitle">Gerencie todos os produtos do seu cardápio.</p>
+        </div>
 
-        <header class="topbar">
+        <button id="btnNovoProduto">+ Novo Produto</button>
+      </div>
 
-            <div>
-                <h1>Produtos</h1>
-                <p>Cadastre, edite e organize os produtos da sua loja.</p>
-            </div>
+      <div class="toolbar">
+        <input type="text" id="buscarProduto" placeholder="Buscar produto...">
+      </div>
 
-            <div class="topbar-actions">
-                <button class="notification">🔔</button>
-                <button id="sair">Sair</button>
-            </div>
+      <div id="listaProdutos" class="lista-produtos"></div>
+    </section>
 
-        </header>
-
-        <section class="panel">
-
-            <div class="panel-header">
-
-                <div>
-                    <h2>Lista de produtos</h2>
-                    <p class="panel-subtitle">
-                        Gerencie todos os produtos do seu cardápio.
-                    </p>
-                </div>
-
-                <button id="btnNovoProduto">
-                    + Novo Produto
-                </button>
-
-            </div>
-
-            <div class="toolbar">
-
-                <input
-                    type="text"
-                    id="buscarProduto"
-                    placeholder="Buscar produto..."
-                >
-
-            </div>
-
-            <div
-                id="listaProdutos"
-                class="lista-produtos">
-            </div>
-
-        </section>
-
-    </main>
+  </main>
 
 </div>
 
-<!-- MODAL -->
-
-<div
-    id="modalProduto"
-    class="modal oculto">
-
-    <div class="modal-content">
-
-        <div class="modal-header">
-
-            <h2>Novo Produto</h2>
-
-            <button
-                id="fecharModalProduto"
-                type="button">
-
-                ×
-
-            </button>
-
-        </div>
-
-        <form
-            id="formProduto"
-            class="form-modal">
-
-            <input
-                type="text"
-                id="produtoNome"
-                placeholder="Nome do produto"
-                required
-            >
-
-            <textarea
-                id="produtoDescricao"
-                placeholder="Descrição do produto">
-            </textarea>
-
-            <select id="produtoCategoria">
-
-                <option value="">
-                    Selecione uma categoria
-                </option>
-
-            </select>
-
-            <input
-                type="number"
-                id="produtoPreco"
-                placeholder="Preço"
-                step="0.01"
-                required
-            >
-
-            <div class="campo-grupos">
-
-                <label>
-                    Grupos de adicionais
-                </label>
-
-                <div
-                    id="listaGruposProduto"
-                    class="lista-checkbox">
-                </div>
-
-            </div>
-
-            <button type="submit">
-                Salvar Produto
-            </button>
-
-        </form>
-
+<div id="modalProduto" class="modal oculto">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Novo Produto</h2>
+      <button id="fecharModalProduto" type="button">×</button>
     </div>
 
+    <form id="formProduto" class="form-modal">
+      <input type="text" id="produtoNome" placeholder="Nome do produto" required>
+      <textarea id="produtoDescricao" placeholder="Descrição do produto"></textarea>
+
+      <select id="produtoCategoria">
+        <option value="">Selecione uma categoria</option>
+      </select>
+
+      <input type="number" id="produtoPreco" placeholder="Preço" step="0.01" required>
+
+      <div class="campo-grupos">
+        <label>Grupos de adicionais</label>
+        <div id="listaGruposProduto" class="lista-checkbox"></div>
+      </div>
+
+      <button type="submit">Salvar Produto</button>
+    </form>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="assets/js/config.js"></script>
-
 <script src="assets/js/supabase.js"></script>
-
 <script src="assets/js/admin.js"></script>
-
+<script src="assets/js/sidebar.js"></script>
+<script>
+  carregarSidebar("produtos");
+</script>
 <script src="assets/js/produtos-admin.js"></script>
 
 </body>
