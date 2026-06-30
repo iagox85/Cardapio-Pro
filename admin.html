@@ -10,19 +10,7 @@
 
 <div class="admin-layout">
 
-  <aside class="sidebar">
-    <h2>DeliveryOS</h2>
-
-    <nav>
-      <a class="active" href="admin.html">📊 Dashboard</a>
-      <a>📦 Pedidos</a>
-      <a href="produtos.html">🍔 Produtos</a>
-      <a>📂 Categorias</a>
-      <a>🧀 Adicionais</a>
-      <a>📈 Relatórios</a>
-      <a>⚙️ Configurações</a>
-    </nav>
-  </aside>
+  <aside id="sidebar" class="sidebar"></aside>
 
   <main class="content">
 
@@ -94,6 +82,10 @@
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/admin.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script>
+  carregarSidebar("dashboard");
+</script>
 
 </body>
 </html>
