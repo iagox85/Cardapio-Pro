@@ -39,6 +39,7 @@ async function carregarLoja() {
   }
 
   lojaAtual = data;
+  window.DeliveryOSLojaAtual = data;
 
   nomeLoja.innerText = data.nome || "Minha Loja";
   descricaoLoja.innerText = data.descricao || "";
@@ -321,9 +322,41 @@ aumentarQuantidade.addEventListener("click", () => {
 });
 
 adicionarCarrinho.addEventListener("click", () => {
+  if (!produtoAtual) return;
   if (!validarMinimosAntesDeAdicionar()) return;
 
-  alert("Produto adicionado ao carrinho! Próximo passo: carrinho.");
+  if (!window.DeliveryOSCarrinho) {
+    alert("Carrinho ainda não carregou. Recarregue a página e tente novamente.");
+    return;
+  }
+
+  const adicionaisSelecionados = Array.from(
+    document.querySelectorAll("#modalProdutoGrupos input:checked")
+  ).map((input) => ({
+    id: input.value,
+    nome: input.dataset.nome || "Adicional",
+    preco: Number(input.dataset.preco || 0),
+    grupo_id: input.name.replace("grupo-", "")
+  }));
+
+  const precoProduto = Number(produtoAtual.preco || 0);
+  const totalAdicionais = adicionaisSelecionados.reduce((total, adicional) => {
+    return total + Number(adicional.preco || 0);
+  }, 0);
+
+  const itemCarrinho = {
+    produto_id: produtoAtual.id,
+    loja_id: produtoAtual.loja_id,
+    nome: produtoAtual.nome,
+    descricao: produtoAtual.descricao || "",
+    preco_unitario: precoProduto,
+    quantidade: quantidadeAtual,
+    adicionais: adicionaisSelecionados,
+    observacao: observacaoProduto.value.trim(),
+    subtotal: (precoProduto + totalAdicionais) * quantidadeAtual
+  };
+
+  window.DeliveryOSCarrinho.adicionar(itemCarrinho);
   modalProduto.classList.add("oculto");
 });
 
