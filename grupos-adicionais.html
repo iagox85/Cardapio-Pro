@@ -10,26 +10,14 @@
 
 <div class="admin-layout">
 
-  <aside class="sidebar">
-    <h2>DeliveryOS</h2>
-
-    <nav>
-      <a href="admin.html">📊 Dashboard</a>
-      <a>📦 Pedidos</a>
-      <a href="produtos.html">🍔 Produtos</a>
-      <a href="categorias.html">📂 Categorias</a>
-      <a href="adicionais.html">🧀 Adicionais</a>
-      <a class="active" href="grupos-adicionais.html">📋 Grupos</a>
-      <a>📈 Relatórios</a>
-      <a>⚙️ Configurações</a>
-    </nav>
-  </aside>
+  <aside id="sidebar" class="sidebar"></aside>
 
   <main class="content">
+
     <header class="topbar">
       <div>
         <h1>Grupos de Adicionais</h1>
-        <p>Crie grupos como “Escolha o queijo”, “Bordas” ou “Extras”.</p>
+        <p>Crie grupos como “Extras”, “Molhos” ou “Bordas”.</p>
       </div>
 
       <div class="topbar-actions">
@@ -42,7 +30,7 @@
       <div class="panel-header">
         <div>
           <h2>Lista de grupos</h2>
-          <p class="panel-subtitle">Configure regras de mínimo e máximo de escolhas.</p>
+          <p class="panel-subtitle">Configure mínimo e máximo de escolhas.</p>
         </div>
 
         <button id="btnNovoGrupo">+ Novo grupo</button>
@@ -59,6 +47,7 @@
 
       <div id="listaGrupos" class="lista-produtos"></div>
     </section>
+
   </main>
 
 </div>
@@ -67,6 +56,10 @@
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/admin.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script>
+  carregarSidebar("grupos");
+</script>
 <script src="assets/js/grupos-adicionais-admin.js"></script>
 
 </body>
