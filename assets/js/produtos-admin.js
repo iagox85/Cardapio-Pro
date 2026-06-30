@@ -5,18 +5,21 @@ const listaProdutos = document.getElementById("listaProdutos");
 const btnNovoProduto = document.getElementById("btnNovoProduto");
 const buscarProduto = document.getElementById("buscarProduto");
 const produtoCategoria = document.getElementById("produtoCategoria");
+const listaGruposProduto = document.getElementById("listaGruposProduto");
 
 const modalTitulo = document.querySelector(".modal-header h2");
 
 let lojaAtual = null;
 let produtosCache = [];
 let categoriasCache = [];
+let gruposCache = [];
 let produtoEditandoId = null;
 
 btnNovoProduto.addEventListener("click", () => {
   produtoEditandoId = null;
   modalTitulo.innerText = "Novo Produto";
   formProduto.reset();
+  renderizarGruposProduto([]);
   modalProduto.classList.remove("oculto");
 });
 
@@ -59,6 +62,7 @@ async function carregarLoja() {
   lojaAtual = data.loja_id;
 
   await carregarCategorias();
+  await carregarGrupos();
   await carregarProdutos();
 }
 
@@ -77,9 +81,7 @@ async function carregarCategorias() {
 
   categoriasCache = data || [];
 
-  produtoCategoria.innerHTML = `
-    <option value="">Selecione uma categoria</option>
-  `;
+  produtoCategoria.innerHTML = `<option value="">Selecione uma categoria</option>`;
 
   categoriasCache.forEach((categoria) => {
     produtoCategoria.innerHTML += `
@@ -90,6 +92,40 @@ async function carregarCategorias() {
   });
 }
 
+async function carregarGrupos() {
+  const { data, error } = await supabaseClient
+    .from("grupos_adicionais")
+    .select("*")
+    .eq("loja_id", lojaAtual)
+    .eq("ativo", true)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  gruposCache = data || [];
+}
+
+function renderizarGruposProduto(gruposSelecionados = []) {
+  if (!gruposCache.length) {
+    listaGruposProduto.innerHTML = "<p>Nenhum grupo cadastrado.</p>";
+    return;
+  }
+
+  listaGruposProduto.innerHTML = gruposCache.map((grupo) => {
+    const checked = gruposSelecionados.includes(grupo.id) ? "checked" : "";
+
+    return `
+      <label>
+        <input type="checkbox" value="${grupo.id}" ${checked}>
+        ${grupo.nome}
+      </label>
+    `;
+  }).join("");
+}
+
 async function carregarProdutos() {
   const { data, error } = await supabaseClient
     .from("produtos")
@@ -97,6 +133,12 @@ async function carregarProdutos() {
       *,
       categorias (
         nome
+      ),
+      produtos_grupos_adicionais (
+        grupo_id,
+        grupos_adicionais (
+          nome
+        )
       )
     `)
     .eq("loja_id", lojaAtual)
@@ -135,12 +177,20 @@ function renderizarProdutos() {
   listaProdutos.innerHTML = produtosFiltrados.map((produto) => {
     const categoriaNome = produto.categorias?.nome || "Sem categoria";
 
+    const grupos = produto.produtos_grupos_adicionais || [];
+
+    const nomesGrupos = grupos
+      .map((item) => item.grupos_adicionais?.nome)
+      .filter(Boolean)
+      .join(", ");
+
     return `
       <div class="produto-admin-item">
         <div>
           <strong>${produto.nome}</strong>
           <p>${produto.descricao || ""}</p>
           <p><small>Categoria: ${categoriaNome}</small></p>
+          <p><small>Grupos: ${nomesGrupos || "Nenhum grupo"}</small></p>
           <span>R$ ${Number(produto.preco).toFixed(2)}</span>
         </div>
 
@@ -177,7 +227,43 @@ function editarProduto(id) {
   document.getElementById("produtoPreco").value = produto.preco;
   produtoCategoria.value = produto.categoria_id || "";
 
+  const gruposSelecionados = (produto.produtos_grupos_adicionais || [])
+    .map((item) => item.grupo_id);
+
+  renderizarGruposProduto(gruposSelecionados);
+
   modalProduto.classList.remove("oculto");
+}
+
+function pegarGruposSelecionados() {
+  const checkboxes = listaGruposProduto.querySelectorAll("input[type='checkbox']:checked");
+
+  return Array.from(checkboxes).map((checkbox) => checkbox.value);
+}
+
+async function salvarGruposDoProduto(produtoId, gruposSelecionados) {
+  await supabaseClient
+    .from("produtos_grupos_adicionais")
+    .delete()
+    .eq("produto_id", produtoId)
+    .eq("loja_id", lojaAtual);
+
+  if (!gruposSelecionados.length) return;
+
+  const registros = gruposSelecionados.map((grupoId) => ({
+    loja_id: lojaAtual,
+    produto_id: produtoId,
+    grupo_id: grupoId
+  }));
+
+  const { error } = await supabaseClient
+    .from("produtos_grupos_adicionais")
+    .insert(registros);
+
+  if (error) {
+    console.error(error);
+    alert("Produto salvo, mas houve erro ao vincular grupos.");
+  }
 }
 
 formProduto.addEventListener("submit", async (e) => {
@@ -187,8 +273,10 @@ formProduto.addEventListener("submit", async (e) => {
   const descricao = document.getElementById("produtoDescricao").value.trim();
   const preco = Number(document.getElementById("produtoPreco").value);
   const categoriaId = produtoCategoria.value || null;
+  const gruposSelecionados = pegarGruposSelecionados();
 
   let error;
+  let produtoId = produtoEditandoId;
 
   if (produtoEditandoId) {
     const resposta = await supabaseClient
@@ -214,15 +302,25 @@ formProduto.addEventListener("submit", async (e) => {
         preco,
         ativo: true,
         indisponivel: false
-      });
+      })
+      .select("id")
+      .single();
 
     error = resposta.error;
+
+    if (resposta.data) {
+      produtoId = resposta.data.id;
+    }
   }
 
   if (error) {
     alert("Erro ao salvar produto.");
     console.error(error);
     return;
+  }
+
+  if (produtoId) {
+    await salvarGruposDoProduto(produtoId, gruposSelecionados);
   }
 
   fecharModal();
