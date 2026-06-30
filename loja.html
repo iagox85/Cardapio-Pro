@@ -1,1 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cardápio Online</title>
+  <link rel="stylesheet" href="assets/css/loja.css">
+</head>
+<body>
 
+<header class="loja-header">
+  <div class="loja-banner">
+    <div class="loja-info">
+      <h1 id="nomeLoja">Carregando...</h1>
+      <p id="descricaoLoja"></p>
+      <span id="tempoEntrega"></span>
+    </div>
+  </div>
+</header>
+
+<main class="loja-container">
+
+  <section class="categorias-loja" id="categoriasLoja"></section>
+
+  <section class="produtos-loja" id="produtosLoja">
+    <p>Carregando cardápio...</p>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/loja.js"></script>
+
+</body>
+</html>
