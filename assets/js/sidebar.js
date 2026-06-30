@@ -1,55 +1,18 @@
 function carregarSidebar(paginaAtiva) {
+  const sidebar = document.getElementById("sidebar");
 
-    const sidebar = document.getElementById("sidebar");
+  sidebar.innerHTML = `
+    <h2>DeliveryOS</h2>
 
-    sidebar.innerHTML = `
-    
-        <h2>DeliveryOS</h2>
-
-        <nav>
-
-            <a href="admin.html"
-                ${paginaAtiva === "dashboard" ? 'class="active"' : ""}>
-                📊 Dashboard
-            </a>
-
-            <a href="pedidos.html"
-                ${paginaAtiva === "pedidos" ? 'class="active"' : ""}>
-                📦 Pedidos
-            </a>
-
-            <a href="produtos.html"
-                ${paginaAtiva === "produtos" ? 'class="active"' : ""}>
-                🍔 Produtos
-            </a>
-
-            <a href="categorias.html"
-                ${paginaAtiva === "categorias" ? 'class="active"' : ""}>
-                📂 Categorias
-            </a>
-
-            <a href="grupos-adicionais.html"
-                ${paginaAtiva === "grupos" ? 'class="active"' : ""}>
-                📋 Grupos
-            </a>
-
-            <a href="adicionais.html"
-                ${paginaAtiva === "adicionais" ? 'class="active"' : ""}>
-                🧀 Adicionais
-            </a>
-
-            <a href="relatorios.html"
-                ${paginaAtiva === "relatorios" ? 'class="active"' : ""}>
-                📈 Relatórios
-            </a>
-
-            <a href="configuracoes.html"
-                ${paginaAtiva === "configuracoes" ? 'class="active"' : ""}>
-                ⚙️ Configurações
-            </a>
-
-        </nav>
-
-    `;
-
+    <nav>
+      <a href="admin.html" class="${paginaAtiva === "dashboard" ? "active" : ""}">📊 Dashboard</a>
+      <a href="pedidos.html" class="${paginaAtiva === "pedidos" ? "active" : ""}">📦 Pedidos</a>
+      <a href="produtos.html" class="${paginaAtiva === "produtos" ? "active" : ""}">🍔 Produtos</a>
+      <a href="categorias.html" class="${paginaAtiva === "categorias" ? "active" : ""}">📂 Categorias</a>
+      <a href="grupos-adicionais.html" class="${paginaAtiva === "grupos" ? "active" : ""}">📋 Grupos</a>
+      <a href="adicionais.html" class="${paginaAtiva === "adicionais" ? "active" : ""}">🧀 Adicionais</a>
+      <a href="relatorios.html" class="${paginaAtiva === "relatorios" ? "active" : ""}">📈 Relatórios</a>
+      <a href="configuracoes.html" class="${paginaAtiva === "configuracoes" ? "active" : ""}">⚙️ Configurações</a>
+    </nav>
+  `;
 }
