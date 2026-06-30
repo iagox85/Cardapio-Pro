@@ -44,16 +44,12 @@ async function carregarConfiguracoes() {
   }
 
   document.getElementById("lojaNome").value = data.nome || "";
-  document.getElementById("lojaTelefone").value = data.telefone || "";
+  document.getElementById("lojaDescricao").value = data.descricao || "";
   document.getElementById("lojaWhatsapp").value = data.whatsapp || "";
+  document.getElementById("lojaTelefone").value = data.telefone || "";
   document.getElementById("lojaPix").value = data.pix_chave || "";
-  document.getElementById("lojaEndereco").value = data.endereco || "";
-  document.getElementById("lojaCidade").value = data.cidade || "";
-  document.getElementById("lojaCep").value = data.cep || "";
-  document.getElementById("lojaTaxaEntrega").value = data.taxa_entrega || 0;
   document.getElementById("lojaPedidoMinimo").value = data.pedido_minimo || 0;
   document.getElementById("lojaTempoEntrega").value = data.tempo_entrega_min || 30;
-  document.getElementById("lojaDescricao").value = data.descricao || "";
 }
 
 formConfiguracoes.addEventListener("submit", async (e) => {
@@ -62,31 +58,23 @@ formConfiguracoes.addEventListener("submit", async (e) => {
   mensagemConfiguracoes.innerText = "Salvando...";
 
   const nome = document.getElementById("lojaNome").value.trim();
-  const telefone = document.getElementById("lojaTelefone").value.trim();
+  const descricao = document.getElementById("lojaDescricao").value.trim();
   const whatsapp = document.getElementById("lojaWhatsapp").value.trim();
+  const telefone = document.getElementById("lojaTelefone").value.trim();
   const pix_chave = document.getElementById("lojaPix").value.trim();
-  const endereco = document.getElementById("lojaEndereco").value.trim();
-  const cidade = document.getElementById("lojaCidade").value.trim();
-  const cep = document.getElementById("lojaCep").value.trim();
-  const taxa_entrega = Number(document.getElementById("lojaTaxaEntrega").value || 0);
   const pedido_minimo = Number(document.getElementById("lojaPedidoMinimo").value || 0);
   const tempo_entrega_min = Number(document.getElementById("lojaTempoEntrega").value || 30);
-  const descricao = document.getElementById("lojaDescricao").value.trim();
 
   const { error } = await supabaseClient
     .from("lojas")
     .update({
       nome,
-      telefone,
+      descricao,
       whatsapp,
+      telefone,
       pix_chave,
-      endereco,
-      cidade,
-      cep,
-      taxa_entrega,
       pedido_minimo,
-      tempo_entrega_min,
-      descricao
+      tempo_entrega_min
     })
     .eq("id", lojaAtual);
 
