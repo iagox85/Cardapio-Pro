@@ -19,6 +19,16 @@ let lojaSlugAtual = "";
 let linkPublicoAtual = "";
 let linkQrCodeAtual = "";
 
+function campoValor(id, fallback = "") {
+  const elemento = document.getElementById(id);
+  return elemento ? elemento.value.trim() : fallback;
+}
+
+function definirCampo(id, valor = "") {
+  const elemento = document.getElementById(id);
+  if (elemento) elemento.value = valor || "";
+}
+
 async function carregarLojaDoUsuario() {
   const {
     data: { user }
@@ -270,13 +280,22 @@ async function carregarConfiguracoes() {
     return;
   }
 
-  document.getElementById("lojaNome").value = data.nome || "";
-  document.getElementById("lojaDescricao").value = data.descricao || "";
-  document.getElementById("lojaWhatsapp").value = data.whatsapp || "";
-  document.getElementById("lojaTelefone").value = data.telefone || "";
-  document.getElementById("lojaPix").value = data.pix_chave || "";
-  document.getElementById("lojaPedidoMinimo").value = data.pedido_minimo || 0;
-  document.getElementById("lojaTempoEntrega").value = data.tempo_entrega_min || 30;
+  definirCampo("lojaNome", data.nome || "");
+  definirCampo("lojaDescricao", data.descricao || "");
+  definirCampo("lojaWhatsapp", data.whatsapp || "");
+  definirCampo("lojaTelefone", data.telefone || "");
+  definirCampo("lojaPix", data.pix_chave || "");
+  definirCampo("lojaPedidoMinimo", data.pedido_minimo || 0);
+  definirCampo("lojaTempoEntrega", data.tempo_entrega_min || 30);
+  definirCampo("lojaEndereco", data.endereco || data.rua || "");
+  definirCampo("lojaBairro", data.bairro || "");
+  definirCampo("lojaCidade", data.cidade || "");
+  definirCampo("lojaEstado", data.estado || data.uf || "");
+  definirCampo("lojaHorario", data.horario_atendimento || data.horario || "");
+  definirCampo("lojaInstagram", data.instagram || data.instagram_url || "");
+  definirCampo("lojaBannerUrl", data.banner_url || data.banner || "");
+  definirCampo("lojaLogoUrl", data.logo_url || data.logo || "");
+  definirCampo("lojaFormasPagamento", data.formas_pagamento || data.pagamentos || "PIX, Dinheiro, Cartão");
 
   atualizarLinkPublico(data.slug);
   carregarResumoPedidosLoja();
@@ -287,13 +306,24 @@ formConfiguracoes.addEventListener("submit", async (e) => {
 
   mostrarMensagemConfiguracoes("Salvando...");
 
-  const nome = document.getElementById("lojaNome").value.trim();
-  const descricao = document.getElementById("lojaDescricao").value.trim();
-  const whatsapp = document.getElementById("lojaWhatsapp").value.trim();
-  const telefone = document.getElementById("lojaTelefone").value.trim();
-  const pix_chave = document.getElementById("lojaPix").value.trim();
-  const pedido_minimo = Number(document.getElementById("lojaPedidoMinimo").value || 0);
-  const tempo_entrega_min = Number(document.getElementById("lojaTempoEntrega").value || 30);
+  const nome = campoValor("lojaNome");
+  const descricao = campoValor("lojaDescricao");
+  const whatsapp = campoValor("lojaWhatsapp");
+  const telefone = campoValor("lojaTelefone");
+  const pix_chave = campoValor("lojaPix");
+  const pedido_minimo = Number(campoValor("lojaPedidoMinimo", "0") || 0);
+  const tempo_entrega_min = Number(campoValor("lojaTempoEntrega", "30") || 30);
+  const endereco = campoValor("lojaEndereco");
+  const bairro = campoValor("lojaBairro");
+  const cidade = campoValor("lojaCidade");
+  const estado = campoValor("lojaEstado");
+  const uf = estado;
+  const horario_atendimento = campoValor("lojaHorario");
+  const instagram = campoValor("lojaInstagram");
+  const instagram_url = instagram;
+  const banner_url = campoValor("lojaBannerUrl");
+  const logo_url = campoValor("lojaLogoUrl");
+  const formas_pagamento = campoValor("lojaFormasPagamento");
 
   const { error } = await supabaseClient
     .from("lojas")
@@ -304,7 +334,18 @@ formConfiguracoes.addEventListener("submit", async (e) => {
       telefone,
       pix_chave,
       pedido_minimo,
-      tempo_entrega_min
+      tempo_entrega_min,
+      endereco,
+      bairro,
+      cidade,
+      estado,
+      uf,
+      horario_atendimento,
+      instagram,
+      instagram_url,
+      banner_url,
+      logo_url,
+      formas_pagamento
     })
     .eq("id", lojaAtual);
 
