@@ -4,6 +4,9 @@
   const paginaAtual = (window.location.pathname || "").split("/").pop().toLowerCase();
   const estaNaPaginaPedidos = paginaAtual === "pedidos.html";
 
+  const DELIVERYOS_SOM_PEDIDOS_KEY = "deliveryos_som_pedidos_ativo";
+  const DELIVERYOS_AUDIO_DESBLOQUEADO_KEY = "deliveryos_audio_pedidos_desbloqueado";
+
   let canalPedidosGlobal = null;
   let lojaIdAtual = null;
   let audioDesbloqueado = false;
@@ -11,6 +14,30 @@
   let intervaloTitulo = null;
   let tituloOriginal = document.title;
   let ultimoPedidoNotificado = null;
+
+  function somGlobalAtivo() {
+    try {
+      return localStorage.getItem(DELIVERYOS_SOM_PEDIDOS_KEY) === "sim";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function salvarSomGlobalAtivo(ativo) {
+    try {
+      localStorage.setItem(DELIVERYOS_SOM_PEDIDOS_KEY, ativo ? "sim" : "nao");
+    } catch (error) {
+      console.warn("DeliveryOS: não foi possível salvar a preferência de som.", error);
+    }
+  }
+
+  function salvarAudioDesbloqueado() {
+    try {
+      localStorage.setItem(DELIVERYOS_AUDIO_DESBLOQUEADO_KEY, "sim");
+    } catch (error) {
+      console.warn("DeliveryOS: não foi possível salvar o desbloqueio de áudio.", error);
+    }
+  }
 
   function normalizarTexto(valor) {
     return String(valor || "").trim();
@@ -37,12 +64,49 @@
     return pedido?.total ?? pedido?.valor_total ?? pedido?.total_pedido ?? 0;
   }
 
-  function desbloquearAudio() {
-    if (audioDesbloqueado) return;
+  function atualizarBotaoSomGlobal() {
+    const btn = document.getElementById("deliveryosBtnSomGlobal");
+    if (!btn) return;
 
+    if (somGlobalAtivo()) {
+      btn.innerText = audioDesbloqueado ? "🔔 Som ativado" : "🔔 Ativar som nesta tela";
+      btn.classList.add("som-ativo");
+      btn.title = audioDesbloqueado
+        ? "O som de novos pedidos está ativo."
+        : "Clique uma vez nesta tela para liberar o som do navegador.";
+    } else {
+      btn.innerText = "🔕 Ativar som";
+      btn.classList.remove("som-ativo");
+      btn.title = "Ativar som de novos pedidos neste navegador.";
+    }
+  }
+
+  function criarBotaoSomGlobal() {
+    if (estaNaPaginaPedidos) return;
+    if (document.getElementById("deliveryosBtnSomGlobal")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "deliveryosBtnSomGlobal";
+    btn.type = "button";
+    btn.className = "deliveryos-som-global-btn";
+    btn.addEventListener("click", () => {
+      salvarSomGlobalAtivo(true);
+      desbloquearAudio(true);
+      atualizarBotaoSomGlobal();
+
+      if (typeof window.showToast === "function") {
+        window.showToast("Som de novos pedidos ativado nesta tela.", "success");
+      }
+    });
+
+    document.body.appendChild(btn);
+    atualizarBotaoSomGlobal();
+  }
+
+  function desbloquearAudio(teste = false) {
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) return false;
 
       const audioContext = new AudioContextClass();
       const oscilador = audioContext.createOscillator();
@@ -55,13 +119,21 @@
       oscilador.stop(audioContext.currentTime + 0.02);
 
       audioDesbloqueado = true;
+      salvarAudioDesbloqueado();
+      atualizarBotaoSomGlobal();
+
+      if (teste) tocarSomNovoPedido(true);
+      return true;
     } catch (error) {
       audioDesbloqueado = false;
+      atualizarBotaoSomGlobal();
+      return false;
     }
   }
 
-  function tocarSomNovoPedido() {
-    if (!audioDesbloqueado) return;
+  function tocarSomNovoPedido(teste = false) {
+    if (!teste && !somGlobalAtivo()) return;
+    if (!teste && !audioDesbloqueado) return;
 
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -98,6 +170,13 @@
 
   function iniciarSomContinuo() {
     pararSomContinuo();
+
+    if (!somGlobalAtivo()) return;
+
+    if (!audioDesbloqueado) {
+      criarAvisoLiberarSom();
+      return;
+    }
 
     tocarSomNovoPedido();
     intervaloSom = setInterval(() => {
@@ -146,17 +225,26 @@
         </div>
         <div class="deliveryos-pedido-global-actions">
           <button type="button" id="deliveryosBtnVerPedidoGlobal">Ver pedidos</button>
+          <button type="button" id="deliveryosBtnLiberarSomGlobal">Ativar som</button>
           <button type="button" id="deliveryosBtnSilenciarPedidoGlobal" aria-label="Silenciar aviso">Silenciar</button>
         </div>
       `;
       document.body.appendChild(alerta);
 
       const btnVerPedidos = alerta.querySelector("#deliveryosBtnVerPedidoGlobal");
+      const btnLiberarSom = alerta.querySelector("#deliveryosBtnLiberarSomGlobal");
       const btnSilenciar = alerta.querySelector("#deliveryosBtnSilenciarPedidoGlobal");
 
       btnVerPedidos?.addEventListener("click", () => {
         pararNotificacaoGlobal();
         window.location.href = "pedidos.html";
+      });
+
+      btnLiberarSom?.addEventListener("click", () => {
+        salvarSomGlobalAtivo(true);
+        desbloquearAudio(true);
+        iniciarSomContinuo();
+        atualizarBotaoSomGlobal();
       });
 
       btnSilenciar?.addEventListener("click", () => {
@@ -167,14 +255,25 @@
     return alerta;
   }
 
+  function criarAvisoLiberarSom() {
+    const alerta = criarAlertaVisual();
+    const btnLiberarSom = alerta.querySelector("#deliveryosBtnLiberarSomGlobal");
+    if (btnLiberarSom) btnLiberarSom.style.display = "inline-flex";
+  }
+
   function mostrarAlertaVisual(pedido) {
     const alerta = criarAlertaVisual();
     const texto = alerta.querySelector("#deliveryosPedidoGlobalTexto");
+    const btnLiberarSom = alerta.querySelector("#deliveryosBtnLiberarSomGlobal");
     const cliente = obterNomeCliente(pedido);
     const total = obterTotalPedido(pedido);
 
     if (texto) {
       texto.textContent = `${cliente} • ${formatarMoeda(total)} • clique em Ver pedidos para aceitar.`;
+    }
+
+    if (btnLiberarSom) {
+      btnLiberarSom.style.display = somGlobalAtivo() && !audioDesbloqueado ? "inline-flex" : "none";
     }
 
     alerta.classList.remove("oculto");
@@ -294,7 +393,8 @@
       window.addEventListener(
         evento,
         () => {
-          desbloquearAudio();
+          if (somGlobalAtivo()) desbloquearAudio(false);
+          pedirPermissaoNotificacaoDepoisDeInteracao();
         },
         { passive: true }
       );
@@ -309,16 +409,30 @@
         pararPiscarTitulo();
       }
     });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key === DELIVERYOS_SOM_PEDIDOS_KEY) atualizarBotaoSomGlobal();
+    });
   }
 
   window.DeliveryOSPedidosNotifier = {
     iniciar: iniciarRealtimeGlobal,
     parar: pararNotificacaoGlobal,
-    desbloquearAudio
+    desbloquearAudio,
+    ativarSom: () => {
+      salvarSomGlobalAtivo(true);
+      desbloquearAudio(true);
+    },
+    desativarSom: () => {
+      salvarSomGlobalAtivo(false);
+      pararNotificacaoGlobal();
+      atualizarBotaoSomGlobal();
+    }
   };
 
   document.addEventListener("DOMContentLoaded", () => {
     configurarEventosGlobais();
+    criarBotaoSomGlobal();
     iniciarRealtimeGlobal();
   });
 })();
