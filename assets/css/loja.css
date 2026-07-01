@@ -1677,3 +1677,533 @@ button {
     font-size: 21px;
   }
 }
+
+/* =========================================================
+   DELIVERYOS - CARDÁPIO MOBILE ESTILO APP / OLACLICK
+   Ajuste: banner separado da identidade da loja
+   ========================================================= */
+
+.loja-header-compacto {
+  background: #ffffff;
+  color: #111827;
+  overflow: hidden;
+}
+
+.loja-banner-limpo {
+  min-height: 250px;
+  height: 250px;
+  padding: 0;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(239, 68, 68, 0.22), transparent 34%),
+    linear-gradient(135deg, #0f172a, #1f1020 52%, #7f1d1d);
+  background-size: cover;
+  background-position: center;
+  border-radius: 0 0 28px 28px;
+  overflow: visible;
+}
+
+.loja-banner-limpo::after,
+.loja-banner-limpo .loja-banner-overlay {
+  display: none !important;
+}
+
+.loja-banner-acoes {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 3;
+  display: flex;
+  gap: 12px;
+}
+
+.loja-banner-acoes a {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+  backdrop-filter: blur(10px);
+}
+
+.loja-banner-acoes svg {
+  width: 25px;
+  height: 25px;
+  fill: currentColor;
+}
+
+.loja-identidade-card {
+  position: relative;
+  max-width: 900px;
+  margin: -72px auto 0;
+  padding: 0 20px 26px;
+  text-align: center;
+  z-index: 5;
+}
+
+.loja-avatar-sobreposto {
+  margin: 0 auto 18px;
+  width: 132px;
+  height: 132px;
+  border-radius: 28px;
+  background: #ffffff;
+  color: var(--cor-primaria);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  border: 4px solid #ffffff;
+  font-size: 56px;
+}
+
+.loja-info-centralizada h1 {
+  color: #030712;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1;
+  letter-spacing: -1.8px;
+  text-shadow: none;
+  margin: 0;
+}
+
+.loja-info-centralizada p {
+  color: #6b7280;
+  margin: 10px auto 0;
+  font-size: 18px;
+  max-width: 720px;
+}
+
+.loja-status-clean {
+  justify-content: center;
+  margin: 18px 0 12px;
+}
+
+.loja-status-clean span {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0 10px;
+  min-height: auto;
+  color: #4b5563;
+  font-size: 16px;
+  font-weight: 700;
+  position: relative;
+}
+
+.loja-status-clean span + span::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 1px;
+  height: 18px;
+  transform: translateY(-50%);
+  background: #d1d5db;
+}
+
+.loja-status-clean .status-loja.aberto {
+  color: #111827;
+}
+
+.loja-status-clean .status-loja.aberto::before {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: 2px;
+}
+
+.loja-status-clean #tipoAtendimentoLoja {
+  background: transparent !important;
+  color: #4b5563 !important;
+}
+
+.loja-endereco-resumo {
+  max-width: 720px;
+  margin: 0 auto 20px;
+  color: #4b5563;
+  font-size: 17px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-info-loja {
+  width: min(680px, 100%);
+  height: 58px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.btn-info-loja:active {
+  transform: scale(0.99);
+}
+
+.loja-meta-oculta {
+  display: none !important;
+}
+
+.loja-container-app {
+  margin-top: 0;
+}
+
+.busca-cardapio-app {
+  max-width: 900px;
+  margin: 0 auto 14px;
+  padding: 0 20px;
+}
+
+.busca-cardapio-app .campo-busca {
+  height: 62px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.categorias-wrapper-app {
+  max-width: 900px;
+  margin: 0 auto 18px;
+  padding: 0 20px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.categorias-wrapper-app .categorias-loja {
+  border-bottom: 1px solid #e5e7eb;
+  gap: 28px;
+}
+
+.categorias-wrapper-app .categorias-loja button {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 16px 0 18px !important;
+  color: #111827 !important;
+  font-size: 18px;
+  font-weight: 900;
+  position: relative;
+}
+
+.categorias-wrapper-app .categorias-loja button.active {
+  color: var(--cor-primaria) !important;
+}
+
+.categorias-wrapper-app .categorias-loja button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 4px;
+  border-radius: 999px 999px 0 0;
+  background: var(--cor-primaria);
+}
+
+.modal-info-loja-content {
+  max-width: 480px;
+  padding: 28px;
+}
+
+.modal-info-loja-content h2 {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.info-loja-lista {
+  display: grid;
+  gap: 12px;
+}
+
+.info-loja-lista p {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  color: #334155;
+  font-weight: 700;
+}
+
+.info-loja-redes {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.info-loja-redes a {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+  color: #ffffff !important;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 900;
+}
+
+.info-loja-redes .social-instagram {
+  background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af);
+}
+
+.info-loja-redes .social-whatsapp {
+  background: #22c55e;
+}
+
+@media (min-width: 769px) {
+  .loja-banner-limpo {
+    height: 310px;
+    min-height: 310px;
+  }
+
+  .loja-identidade-card {
+    margin-top: -78px;
+  }
+
+  .produtos-loja {
+    max-width: 1180px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    background: #ffffff;
+    padding-bottom: 98px;
+  }
+
+  .loja-banner-limpo {
+    height: 188px;
+    min-height: 188px;
+    border-radius: 0 0 22px 22px;
+  }
+
+  .loja-banner-acoes {
+    top: 14px;
+    right: 14px;
+    gap: 9px;
+  }
+
+  .loja-banner-acoes a {
+    width: 42px;
+    height: 42px;
+  }
+
+  .loja-identidade-card {
+    margin-top: -54px;
+    padding: 0 16px 18px;
+  }
+
+  .loja-avatar-sobreposto {
+    width: 108px;
+    height: 108px;
+    border-radius: 24px;
+    font-size: 46px;
+    margin-bottom: 14px;
+    border-width: 3px;
+  }
+
+  .loja-info-centralizada h1 {
+    font-size: 34px;
+    letter-spacing: -1.4px;
+  }
+
+  .loja-info-centralizada p {
+    font-size: 17px;
+    margin-top: 8px;
+  }
+
+  .loja-status-clean {
+    gap: 0;
+    margin: 15px 0 10px;
+  }
+
+  .loja-status-clean span {
+    font-size: 14px;
+    padding: 0 8px;
+  }
+
+  .loja-status-clean #tipoAtendimentoLoja {
+    display: none;
+  }
+
+  .loja-status-clean span + span::before {
+    height: 14px;
+  }
+
+  .loja-endereco-resumo {
+    font-size: 15px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .btn-info-loja {
+    height: 52px;
+    font-size: 18px;
+    border-radius: 13px;
+  }
+
+  .busca-cardapio-app {
+    padding: 0 16px;
+    margin-bottom: 12px;
+  }
+
+  .busca-cardapio-app .campo-busca {
+    height: 58px;
+    border-radius: 16px;
+    box-shadow: none;
+  }
+
+  .campo-busca input {
+    font-size: 16px;
+  }
+
+  .categorias-wrapper-app {
+    padding: 0 16px;
+    margin-bottom: 0;
+    overflow-x: auto;
+  }
+
+  .categorias-wrapper-app .categorias-loja {
+    gap: 26px;
+    min-width: max-content;
+  }
+
+  .categorias-wrapper-app .categorias-loja button {
+    font-size: 17px;
+    padding: 15px 0 16px !important;
+  }
+
+  .produtos-loja {
+    padding: 0;
+    margin-top: 0;
+    background: #ffffff;
+  }
+
+  .produto-card {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: 0;
+    border-bottom: 1px solid #eef2f7;
+    padding: 24px 16px;
+    display: grid;
+    grid-template-columns: 1fr 126px;
+    gap: 16px;
+    min-height: 168px;
+    background: #ffffff;
+  }
+
+  .produto-card .produto-imagem,
+  .produto-card .produto-img,
+  .produto-imagem {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    width: 126px;
+    height: 126px;
+    border-radius: 18px;
+    overflow: hidden;
+    align-self: center;
+  }
+
+  .produto-card .produto-conteudo,
+  .produto-info {
+    grid-column: 1;
+    padding: 0 !important;
+    display: contents;
+  }
+
+  .produto-card h3,
+  .produto-card .produto-nome {
+    grid-column: 1;
+    font-size: 24px;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    color: #030712;
+    font-weight: 1000;
+  }
+
+  .produto-card p,
+  .produto-card .produto-descricao {
+    grid-column: 1;
+    font-size: 17px;
+    line-height: 1.25;
+    color: #6b7280;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .produto-card .produto-footer,
+  .produto-acoes {
+    grid-column: 1 / span 2;
+    display: grid;
+    grid-template-columns: 1fr 54px;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 0;
+  }
+
+  .produto-card .produto-preco,
+  .produto-preco {
+    color: #030712 !important;
+    font-size: 24px !important;
+    font-weight: 1000 !important;
+  }
+
+  .produto-card button,
+  .btn-adicionar-produto {
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 0 !important;
+    box-shadow: 0 12px 26px rgba(239, 63, 69, 0.35) !important;
+  }
+
+  .produto-card button::before,
+  .btn-adicionar-produto::before {
+    content: "+";
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  .loja-footer {
+    margin-top: 20px;
+  }
+
+  .modal-info-loja-content {
+    max-width: calc(100vw - 28px);
+    width: calc(100vw - 28px);
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .produto-card .produto-topo {
+    grid-column: 1;
+  }
+
+  .produto-card .produto-rodape {
+    grid-column: 1 / span 2;
+    display: grid;
+    grid-template-columns: 1fr 54px;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .produto-card .produto-precos strong {
+    color: #030712 !important;
+    font-size: 24px !important;
+    font-weight: 1000 !important;
+  }
+}
