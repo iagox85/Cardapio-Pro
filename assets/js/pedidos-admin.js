@@ -21,6 +21,53 @@ let canalPedidos = null;
 let pedidosDestacados = new Set();
 let lojaAtualPedidos = null;
 
+const DELIVERYOS_SOM_PEDIDOS_KEY = "deliveryos_som_pedidos_ativo";
+const DELIVERYOS_AUDIO_DESBLOQUEADO_KEY = "deliveryos_audio_pedidos_desbloqueado";
+
+function salvarPreferenciaSomPedidos(ativo) {
+  try {
+    localStorage.setItem(DELIVERYOS_SOM_PEDIDOS_KEY, ativo ? "sim" : "nao");
+  } catch (error) {
+    console.warn("Não foi possível salvar preferência de som.", error);
+  }
+}
+
+function lerPreferenciaSomPedidos() {
+  try {
+    return localStorage.getItem(DELIVERYOS_SOM_PEDIDOS_KEY) === "sim";
+  } catch (error) {
+    return false;
+  }
+}
+
+function salvarAudioDesbloqueadoPedidos() {
+  try {
+    localStorage.setItem(DELIVERYOS_AUDIO_DESBLOQUEADO_KEY, "sim");
+  } catch (error) {
+    console.warn("Não foi possível salvar desbloqueio de áudio.", error);
+  }
+}
+
+function atualizarBotaoSomPedidos() {
+  if (!btnSomPedidos) return;
+
+  if (somPedidosAtivo) {
+    btnSomPedidos.innerText = "🔔 Som ativado";
+    btnSomPedidos.classList.add("som-ativo");
+    btnSomPedidos.title = "O som de novos pedidos está ativado neste navegador.";
+  } else {
+    btnSomPedidos.innerText = "🔕 Ativar som";
+    btnSomPedidos.classList.remove("som-ativo");
+    btnSomPedidos.title = "Clique para ativar o som de novos pedidos neste navegador.";
+  }
+}
+
+function inicializarPreferenciaSomPedidos() {
+  somPedidosAtivo = lerPreferenciaSomPedidos();
+  atualizarBotaoSomPedidos();
+}
+
+
 const STATUS_PEDIDOS = {
   novo: {
     label: "🔴 Novo pedido",
@@ -528,6 +575,7 @@ function tocarSomNovoPedido(teste = false) {
     tocarNota(1046, 0.76, 0.38, 0.24);
 
     audioPedidoDesbloqueado = true;
+    salvarAudioDesbloqueadoPedidos();
   } catch (error) {
     console.warn("Não foi possível tocar som:", error);
   }
@@ -556,20 +604,25 @@ function ativarSomPedidos() {
   somPedidosAtivo = true;
   audioPedidoDesbloqueado = true;
 
+  salvarPreferenciaSomPedidos(true);
+  salvarAudioDesbloqueadoPedidos();
   tocarSomNovoPedido(true);
+  atualizarBotaoSomPedidos();
 
-  if (btnSomPedidos) {
-    btnSomPedidos.innerText = "🔔 Som ativado";
-    btnSomPedidos.classList.add("som-ativo");
+  if (typeof window.showToast === "function") {
+    window.showToast("Som de novos pedidos ativado neste navegador.", "success");
   }
 }
 
 function desativarSomPedidos() {
   somPedidosAtivo = false;
+  pararAlertaSonoroPedido();
 
-  if (btnSomPedidos) {
-    btnSomPedidos.innerText = "🔕 Som desligado";
-    btnSomPedidos.classList.remove("som-ativo");
+  salvarPreferenciaSomPedidos(false);
+  atualizarBotaoSomPedidos();
+
+  if (typeof window.showToast === "function") {
+    window.showToast("Som de novos pedidos desativado.", "info");
   }
 }
 
@@ -1066,8 +1119,7 @@ if (btnAtualizarPedidos) {
 }
 
 if (btnSomPedidos) {
-  btnSomPedidos.innerText = "🔔 Ativar som";
-  btnSomPedidos.classList.remove("som-ativo");
+  inicializarPreferenciaSomPedidos();
 
   btnSomPedidos.addEventListener("click", () => {
     if (!somPedidosAtivo || !audioPedidoDesbloqueado) {
