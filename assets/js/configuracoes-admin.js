@@ -13,6 +13,10 @@ const qrCodeModalImagem = document.getElementById("qrCodeModalImagem");
 const btnFecharQrModal = document.getElementById("btnFecharQrModal");
 const pedidosHojeResumo = document.getElementById("pedidosHojeResumo");
 const ultimoPedidoResumo = document.getElementById("ultimoPedidoResumo");
+const lojaBannerArquivo = document.getElementById("lojaBannerArquivo");
+const lojaLogoArquivo = document.getElementById("lojaLogoArquivo");
+const previewBannerLoja = document.getElementById("previewBannerLoja");
+const previewLogoLoja = document.getElementById("previewLogoLoja");
 
 let lojaAtual = null;
 let lojaSlugAtual = "";
@@ -27,6 +31,111 @@ function campoValor(id, fallback = "") {
 function definirCampo(id, valor = "") {
   const elemento = document.getElementById(id);
   if (elemento) elemento.value = valor || "";
+}
+
+function formatarTextoComIniciaisMaiusculas(texto) {
+  return String(texto || "")
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .replace(/(^|[\s,./ºª-])([\p{L}])/gu, (match, separador, letra) => {
+      return `${separador}${letra.toLocaleUpperCase("pt-BR")}`;
+    });
+}
+
+function normalizarExtensaoImagem(nomeArquivo, tipoArquivo) {
+  const nome = String(nomeArquivo || "").toLowerCase();
+
+  if (nome.endsWith(".png")) return "png";
+  if (nome.endsWith(".webp")) return "webp";
+  if (nome.endsWith(".jpg") || nome.endsWith(".jpeg")) return "jpg";
+
+  if (tipoArquivo === "image/png") return "png";
+  if (tipoArquivo === "image/webp") return "webp";
+
+  return "jpg";
+}
+
+function validarImagemLoja(arquivo, tipoImagem) {
+  if (!arquivo) return true;
+
+  const limiteBytes = 1024 * 1024;
+  const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!tiposPermitidos.includes(arquivo.type)) {
+    mostrarMensagemConfiguracoes(`${tipoImagem}: envie uma imagem JPG, PNG ou WEBP.`, "erro");
+    return false;
+  }
+
+  if (arquivo.size > limiteBytes) {
+    mostrarMensagemConfiguracoes(`${tipoImagem}: a imagem precisa ter no máximo 1MB.`, "erro");
+    return false;
+  }
+
+  return true;
+}
+
+function atualizarPreviewImagem(elemento, url, textoVazio) {
+  if (!elemento) return;
+
+  if (!url) {
+    elemento.innerHTML = textoVazio;
+    return;
+  }
+
+  elemento.innerHTML = `<img src="${url}" alt="Prévia da imagem">`;
+}
+
+function prepararPreviewArquivo(input, preview, textoVazio, tipoImagem) {
+  if (!input) return;
+
+  input.addEventListener("change", () => {
+    const arquivo = input.files && input.files[0];
+
+    if (!arquivo) {
+      atualizarPreviewImagem(preview, "", textoVazio);
+      return;
+    }
+
+    if (!validarImagemLoja(arquivo, tipoImagem)) {
+      input.value = "";
+      return;
+    }
+
+    const urlTemporaria = URL.createObjectURL(arquivo);
+    atualizarPreviewImagem(preview, urlTemporaria, textoVazio);
+  });
+}
+
+async function enviarImagemLoja(input, tipoImagem) {
+  const arquivo = input?.files?.[0];
+
+  if (!arquivo) return "";
+
+  if (!validarImagemLoja(arquivo, tipoImagem === "banner" ? "Banner" : "Logo")) {
+    throw new Error("Imagem inválida");
+  }
+
+  const extensao = normalizarExtensaoImagem(arquivo.name, arquivo.type);
+  const caminho = `${lojaAtual}/${tipoImagem}.${extensao}`;
+
+  const { error } = await supabaseClient.storage
+    .from("lojas")
+    .upload(caminho, arquivo, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: arquivo.type
+    });
+
+  if (error) {
+    console.error(error);
+    throw new Error(`Erro ao enviar ${tipoImagem === "banner" ? "banner" : "logo"}.`);
+  }
+
+  const { data } = supabaseClient.storage
+    .from("lojas")
+    .getPublicUrl(caminho);
+
+  return `${data.publicUrl}?v=${Date.now()}`;
 }
 
 async function carregarLojaDoUsuario() {
@@ -290,11 +399,12 @@ async function carregarConfiguracoes() {
   definirCampo("lojaEndereco", data.endereco || data.rua || "");
   definirCampo("lojaBairro", data.bairro || "");
   definirCampo("lojaCidade", data.cidade || "");
-  definirCampo("lojaEstado", data.estado || data.uf || "");
   definirCampo("lojaHorario", data.horario_atendimento || data.horario || "");
   definirCampo("lojaInstagram", data.instagram || data.instagram_url || "");
   definirCampo("lojaBannerUrl", data.banner_url || data.banner || "");
   definirCampo("lojaLogoUrl", data.logo_url || data.logo || "");
+  atualizarPreviewImagem(previewBannerLoja, data.banner_url || data.banner || "", "Nenhum banner enviado");
+  atualizarPreviewImagem(previewLogoLoja, data.logo_url || data.logo || "", "Sem logo");
   definirCampo("lojaFormasPagamento", data.formas_pagamento || data.pagamentos || "PIX, Dinheiro, Cartão");
 
   atualizarLinkPublico(data.slug);
@@ -313,17 +423,26 @@ formConfiguracoes.addEventListener("submit", async (e) => {
   const pix_chave = campoValor("lojaPix");
   const pedido_minimo = Number(campoValor("lojaPedidoMinimo", "0") || 0);
   const tempo_entrega_min = Number(campoValor("lojaTempoEntrega", "30") || 30);
-  const endereco = campoValor("lojaEndereco");
-  const bairro = campoValor("lojaBairro");
-  const cidade = campoValor("lojaCidade");
-  const estado = campoValor("lojaEstado");
-  const uf = estado;
-  const horario_atendimento = campoValor("lojaHorario");
+  const endereco = formatarTextoComIniciaisMaiusculas(campoValor("lojaEndereco"));
+  const bairro = formatarTextoComIniciaisMaiusculas(campoValor("lojaBairro"));
+  const cidade = formatarTextoComIniciaisMaiusculas(campoValor("lojaCidade"));
+  const horario_atendimento = formatarTextoComIniciaisMaiusculas(campoValor("lojaHorario"));
   const instagram = campoValor("lojaInstagram");
   const instagram_url = instagram;
-  const banner_url = campoValor("lojaBannerUrl");
-  const logo_url = campoValor("lojaLogoUrl");
+  let banner_url = campoValor("lojaBannerUrl");
+  let logo_url = campoValor("lojaLogoUrl");
   const formas_pagamento = campoValor("lojaFormasPagamento");
+
+  try {
+    const novoBannerUrl = await enviarImagemLoja(lojaBannerArquivo, "banner");
+    const novaLogoUrl = await enviarImagemLoja(lojaLogoArquivo, "logo");
+
+    if (novoBannerUrl) banner_url = novoBannerUrl;
+    if (novaLogoUrl) logo_url = novaLogoUrl;
+  } catch (errorUpload) {
+    mostrarMensagemConfiguracoes(errorUpload.message || "Erro ao enviar imagem.", "erro");
+    return;
+  }
 
   const { error } = await supabaseClient
     .from("lojas")
@@ -338,8 +457,6 @@ formConfiguracoes.addEventListener("submit", async (e) => {
       endereco,
       bairro,
       cidade,
-      estado,
-      uf,
       horario_atendimento,
       instagram,
       instagram_url,
@@ -354,6 +471,14 @@ formConfiguracoes.addEventListener("submit", async (e) => {
     console.error(error);
     return;
   }
+
+  definirCampo("lojaBannerUrl", banner_url);
+  definirCampo("lojaLogoUrl", logo_url);
+  atualizarPreviewImagem(previewBannerLoja, banner_url, "Nenhum banner enviado");
+  atualizarPreviewImagem(previewLogoLoja, logo_url, "Sem logo");
+
+  if (lojaBannerArquivo) lojaBannerArquivo.value = "";
+  if (lojaLogoArquivo) lojaLogoArquivo.value = "";
 
   mostrarMensagemConfiguracoes("Configurações salvas com sucesso!");
 });
@@ -390,5 +515,8 @@ if (qrCodeModal) {
     }
   });
 }
+
+prepararPreviewArquivo(lojaBannerArquivo, previewBannerLoja, "Nenhum banner enviado", "Banner");
+prepararPreviewArquivo(lojaLogoArquivo, previewLogoLoja, "Sem logo", "Logo");
 
 carregarLojaDoUsuario();
