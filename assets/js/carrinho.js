@@ -151,56 +151,72 @@ function instalarEstilosCarrinho() {
   style.id = "deliveryos-carrinho-estilos";
   style.innerHTML = `
     .deliveryos-carrinho-pulse {
-      animation: deliveryosCarrinhoPulse 0.35s ease;
+      animation: deliveryosCarrinhoPulse 0.32s ease;
     }
 
     .deliveryos-carrinho-contador-pulse {
-      animation: deliveryosCarrinhoContadorPulse 0.35s ease;
+      animation: deliveryosCarrinhoContadorPulse 0.32s ease;
     }
 
     .deliveryos-item-entrada {
-      animation: deliveryosItemEntrada 0.25s ease;
+      animation: deliveryosItemEntrada 0.22s ease;
     }
 
     #modalCarrinho .modal-produto-content {
+      width: min(720px, calc(100vw - 28px));
+      max-height: 90vh;
       display: flex;
       flex-direction: column;
       padding: 0;
       overflow: hidden;
-      max-height: 90vh;
+      border-radius: 24px;
+      background: #ffffff;
     }
 
     #modalCarrinho h2 {
-      padding: 26px 26px 16px;
+      padding: 24px 26px 14px;
       margin: 0;
-      font-size: 26px;
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
       color: #111827;
     }
 
     #modalCarrinho .fechar-modal {
-      z-index: 3;
+      z-index: 4;
     }
 
     #itensCarrinho {
       margin-top: 0;
-      padding: 0 26px 16px;
+      padding: 0 22px 14px;
       overflow-y: auto;
       flex: 1;
+      display: grid;
+      gap: 12px;
+    }
+
+    #itensCarrinho::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #itensCarrinho::-webkit-scrollbar-thumb {
+      background: #e5e7eb;
+      border-radius: 999px;
     }
 
     .item-carrinho {
-      border: 1px solid #e5e7eb;
-      border-radius: 18px;
-      padding: 14px;
+      border: 1px solid #eef0f3;
+      border-radius: 20px;
+      padding: 12px;
       background: #ffffff;
-      box-shadow: 0 8px 22px rgba(17, 24, 39, 0.06);
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.055);
     }
 
     .item-carrinho-topo {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 14px;
-      margin-bottom: 14px;
+      align-items: flex-start;
     }
 
     .item-carrinho-info {
@@ -210,10 +226,10 @@ function instalarEstilosCarrinho() {
     }
 
     .item-carrinho-foto {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #fee2e2, #f3f4f6);
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -234,42 +250,72 @@ function instalarEstilosCarrinho() {
 
     .item-carrinho h3 {
       font-size: 17px;
-      line-height: 1.2;
-      margin-bottom: 5px;
+      line-height: 1.18;
+      margin: 0 0 4px;
       color: #111827;
+      letter-spacing: -0.02em;
     }
 
     .item-carrinho-preco-base {
       color: #6b7280;
       font-size: 13px;
-      margin-bottom: 7px;
+      margin: 0 0 8px;
     }
 
-    .item-carrinho small {
-      color: #6b7280;
-      display: block;
-      margin-top: 3px;
-      font-size: 13px;
+    .adicionais-carrinho-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .adicional-carrinho-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f9fafb;
+      border: 1px solid #edf0f3;
+      color: #4b5563;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1;
+    }
+
+    .adicional-carrinho-chip strong {
+      color: #111827;
+      font-weight: 800;
+    }
+
+    .sem-adicionais-carrinho {
+      display: inline-flex;
+      color: #9ca3af;
+      font-size: 12px;
+      margin-top: 5px;
     }
 
     .item-carrinho-total-box {
       text-align: right;
-      min-width: 88px;
+      min-width: 92px;
+      display: grid;
+      gap: 3px;
     }
 
     .item-carrinho-total-label {
-      display: block;
       color: #9ca3af;
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .item-carrinho-preco {
-      font-weight: 800;
+      font-weight: 950;
       color: #ef4444;
       white-space: nowrap;
-      font-size: 18px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
     }
 
     .observacao-tag {
@@ -281,6 +327,7 @@ function instalarEstilosCarrinho() {
       border-radius: 999px;
       padding: 6px 9px;
       font-size: 12px;
+      font-weight: 700;
       margin-top: 8px;
       max-width: 100%;
     }
@@ -295,7 +342,7 @@ function instalarEstilosCarrinho() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 12px;
+      margin-top: 10px;
       gap: 10px;
     }
 
@@ -308,39 +355,49 @@ function instalarEstilosCarrinho() {
 
     .item-carrinho-acoes button {
       border: none;
-      border-radius: 11px;
-      padding: 9px 11px;
-      font-weight: bold;
       cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
     }
 
     .item-carrinho-acoes button:active {
       transform: scale(0.96);
     }
 
-    .btn-remover-item {
-      background: #fff1f2;
-      color: #e11d48;
-      width: 38px;
-      height: 38px;
+    .btn-remover-item,
+    .btn-editar-observacao {
+      width: 36px;
+      height: 36px;
       padding: 0 !important;
+      border-radius: 12px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .btn-remover-item {
+      background: #fff1f2;
+      color: #e11d48;
+    }
+
+    .btn-remover-item:hover {
+      background: #ffe4e6;
     }
 
     .btn-editar-observacao {
       background: #f3f4f6;
       color: #374151;
-      font-size: 12px;
+    }
+
+    .btn-editar-observacao:hover {
+      background: #e5e7eb;
     }
 
     .controle-item {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
+      gap: 4px;
       background: #f9fafb;
       border: 1px solid #e5e7eb;
       border-radius: 999px;
@@ -348,8 +405,8 @@ function instalarEstilosCarrinho() {
     }
 
     .controle-item button {
-      width: 32px;
-      height: 32px;
+      width: 31px;
+      height: 31px;
       padding: 0;
       background: #ef4444;
       color: white;
@@ -358,27 +415,30 @@ function instalarEstilosCarrinho() {
       align-items: center;
       justify-content: center;
       line-height: 1;
+      font-size: 17px;
+      font-weight: 900;
     }
 
     .controle-item strong {
-      min-width: 18px;
+      min-width: 26px;
       text-align: center;
       color: #111827;
+      font-size: 14px;
+      font-weight: 900;
     }
 
     .carrinho-footer-fixo {
-      border-top: 1px solid #e5e7eb;
-      padding: 16px 26px 26px;
-      background: rgba(255,255,255,0.96);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 -10px 30px rgba(17, 24, 39, 0.06);
+      border-top: 1px solid #edf0f3;
+      padding: 14px 24px 24px;
+      background: #ffffff;
+      box-shadow: 0 -8px 22px rgba(17, 24, 39, 0.045);
       flex: 0 0 auto;
     }
 
     .carrinho-detalhes-financeiros {
       display: grid;
       gap: 7px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       color: #6b7280;
       font-size: 14px;
     }
@@ -401,24 +461,30 @@ function instalarEstilosCarrinho() {
       margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-end;
+      gap: 16px;
     }
 
     #modalCarrinho .total-carrinho span {
       color: #111827;
-      font-size: 18px;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding-bottom: 4px;
     }
 
     #modalCarrinho .total-carrinho strong {
-      font-size: 30px;
+      font-size: 34px;
       color: #ef4444;
       line-height: 1;
+      letter-spacing: -0.04em;
+      font-weight: 950;
     }
 
     .carrinho-footer-acoes {
       display: grid;
-      grid-template-columns: 1fr 1.4fr;
+      grid-template-columns: 1fr 1.45fr;
       gap: 10px;
     }
 
@@ -428,61 +494,81 @@ function instalarEstilosCarrinho() {
       background: white;
       color: #374151;
       padding: 14px;
-      border-radius: 14px;
+      border-radius: 15px;
       font-size: 15px;
-      font-weight: 800;
+      font-weight: 900;
       cursor: pointer;
+    }
+
+    .btn-continuar-comprando:hover {
+      background: #f9fafb;
     }
 
     #modalCarrinho #finalizarPedido {
       margin: 0;
       padding: 14px;
-      border-radius: 14px;
+      border-radius: 15px;
       font-size: 16px;
-      font-weight: 800;
+      font-weight: 950;
+      box-shadow: 0 10px 22px rgba(239, 68, 68, 0.22);
     }
 
     .carrinho-vazio {
       text-align: center;
-      padding: 28px 10px;
+      padding: 34px 12px;
       color: #6b7280;
       background: #f9fafb;
-      border-radius: 16px;
+      border: 1px dashed #d1d5db;
+      border-radius: 18px;
+      font-weight: 700;
     }
 
     @keyframes deliveryosCarrinhoPulse {
       0% { transform: translateX(-50%) translateY(0) scale(1); }
-      45% { transform: translateX(-50%) translateY(-3px) scale(1.03); }
+      45% { transform: translateX(-50%) translateY(-3px) scale(1.025); }
       100% { transform: translateX(-50%) translateY(0) scale(1); }
     }
 
     @keyframes deliveryosCarrinhoContadorPulse {
       0% { transform: scale(1); }
-      45% { transform: scale(1.2); }
+      45% { transform: scale(1.17); }
       100% { transform: scale(1); }
     }
 
     @keyframes deliveryosItemEntrada {
-      0% { opacity: 0; transform: translateY(8px); }
+      0% { opacity: 0; transform: translateY(6px); }
       100% { opacity: 1; transform: translateY(0); }
     }
 
     @media (max-width: 700px) {
       #modalCarrinho .modal-produto-content {
+        width: calc(100vw - 16px);
         max-height: 92vh;
+        border-radius: 22px;
       }
 
       #modalCarrinho h2 {
-        padding: 24px 20px 14px;
-        font-size: 24px;
+        padding: 24px 18px 14px;
+        font-size: 23px;
       }
 
       #itensCarrinho {
-        padding: 0 20px 14px;
+        padding: 0 14px 12px;
+      }
+
+      .item-carrinho {
+        padding: 11px;
+        border-radius: 18px;
       }
 
       .item-carrinho-topo {
         grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .item-carrinho-foto {
+        width: 66px;
+        height: 66px;
       }
 
       .item-carrinho-total-box {
@@ -492,30 +578,25 @@ function instalarEstilosCarrinho() {
         justify-content: space-between;
         gap: 10px;
         background: #f9fafb;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 10px;
       }
 
       .item-carrinho-total-label {
-        margin-bottom: 0;
+        font-size: 11px;
       }
 
       .item-carrinho-acoes {
-        align-items: flex-start;
-        flex-direction: column;
+        align-items: center;
       }
 
-      .grupo-acoes-item {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .controle-item {
-        align-self: flex-end;
+      .controle-item button {
+        width: 30px;
+        height: 30px;
       }
 
       .carrinho-footer-fixo {
-        padding: 14px 20px 22px;
+        padding: 13px 16px 20px;
       }
 
       .carrinho-footer-acoes {
@@ -523,7 +604,7 @@ function instalarEstilosCarrinho() {
       }
 
       #modalCarrinho .total-carrinho strong {
-        font-size: 27px;
+        font-size: 30px;
       }
     }
   `;
@@ -683,10 +764,19 @@ function renderizarItensCarrinho(animar = false) {
 
   itensCarrinho.innerHTML = carrinho.map((item) => {
     const adicionaisHTML = (item.adicionais || []).length
-      ? (item.adicionais || []).map((adicional) => {
-          return `<small>+ ${escaparHTML(adicional.nome)} — ${formatarMoeda(adicional.preco)}</small>`;
-        }).join("")
-      : `<small>Sem adicionais</small>`;
+      ? `
+        <div class="adicionais-carrinho-chips">
+          ${(item.adicionais || []).map((adicional) => {
+            return `
+              <span class="adicional-carrinho-chip">
+                + ${escaparHTML(adicional.nome)}
+                <strong>${formatarMoeda(adicional.preco)}</strong>
+              </span>
+            `;
+          }).join("")}
+        </div>
+      `
+      : `<span class="sem-adicionais-carrinho">Sem adicionais</span>`;
 
     const observacaoHTML = item.observacao
       ? `<span class="observacao-tag">📝 ${escaparHTML(item.observacao)}</span>`
@@ -722,8 +812,8 @@ function renderizarItensCarrinho(animar = false) {
               🗑️
             </button>
 
-            <button class="btn-editar-observacao" onclick="DeliveryOSCarrinho.editarObservacao('${item.id}')">
-              Editar obs.
+            <button class="btn-editar-observacao" title="Editar observação" onclick="DeliveryOSCarrinho.editarObservacao('${item.id}')">
+              ✏️
             </button>
           </div>
 
