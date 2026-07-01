@@ -12,31 +12,31 @@
 
   <aside id="sidebar" class="sidebar"></aside>
 
-  <main class="content">
+  <main class="content page-stack">
 
-    <header class="topbar">
+    <header id="topbar" class="topbar"></header>
+
+    <section class="page-hero">
       <div>
-        <h1>Categorias</h1>
-        <p>Organize os produtos do cardápio.</p>
+        <span class="page-hero-kicker">📂 Organização</span>
+        <h2>Categorias do cardápio</h2>
+        <p>Separe seus produtos por grupos como hambúrgueres, pizzas, bebidas, combos e sobremesas.</p>
       </div>
 
-      <div class="topbar-actions">
-        <button class="notification">🔔</button>
-        <button id="sair">Sair</button>
+      <div class="page-hero-actions">
+        <button id="btnNovaCategoria" type="button" class="btn-admin-secondary">+ Nova categoria</button>
       </div>
-    </header>
+    </section>
 
-    <section class="panel">
-      <div class="panel-header">
+    <section class="admin-list-panel">
+      <div class="admin-list-head">
         <div>
           <h2>Lista de categorias</h2>
-          <p class="panel-subtitle">Ex: Hambúrgueres, Bebidas, Combos.</p>
+          <p>As categorias aparecem no cardápio público para facilitar a navegação dos clientes.</p>
         </div>
-
-        <button id="btnNovaCategoria">+ Nova categoria</button>
       </div>
 
-      <form id="formCategoria" class="form-modal oculto">
+      <form id="formCategoria" class="admin-inline-form oculto">
         <input type="text" id="categoriaNome" placeholder="Nome da categoria" required>
         <textarea id="categoriaDescricao" placeholder="Descrição"></textarea>
         <button type="submit">Salvar categoria</button>
@@ -54,8 +54,10 @@
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/admin.js"></script>
 <script src="assets/js/sidebar.js"></script>
+<script src="assets/js/topbar.js"></script>
 <script>
   carregarSidebar("categorias");
+  carregarTopbar("Categorias", "Organize os produtos do cardápio.");
 </script>
 <script src="assets/js/categorias-admin.js"></script>
 
