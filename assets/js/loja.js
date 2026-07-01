@@ -3,9 +3,16 @@ const descricaoLoja = document.getElementById("descricaoLoja");
 const tempoEntrega = document.getElementById("tempoEntrega");
 const categoriasLoja = document.getElementById("categoriasLoja");
 const produtosLoja = document.getElementById("produtosLoja");
+const buscarProdutoLoja = document.getElementById("buscarProdutoLoja");
+const statusLoja = document.getElementById("statusLoja");
+const pedidoMinimoLoja = document.getElementById("pedidoMinimoLoja");
+const taxaEntregaLoja = document.getElementById("taxaEntregaLoja");
+const lojaLogo = document.getElementById("lojaLogo");
+const lojaBanner = document.getElementById("lojaBanner");
 
 const modalProduto = document.getElementById("modalProduto");
 const fecharModalProduto = document.getElementById("fecharModalProduto");
+const modalProdutoImagem = document.getElementById("modalProdutoImagem");
 const modalProdutoNome = document.getElementById("modalProdutoNome");
 const modalProdutoDescricao = document.getElementById("modalProdutoDescricao");
 const modalProdutoPreco = document.getElementById("modalProdutoPreco");
@@ -21,24 +28,16 @@ let lojaAtual = null;
 let categoriasCache = [];
 let produtosCache = [];
 let categoriaSelecionada = "todas";
+let buscaAtual = "";
 
 let produtoAtual = null;
 let quantidadeAtual = 1;
 
-function formatarMoeda(valor) {
+function formatarMoedaLoja(valor) {
   return Number(valor || 0).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL"
   });
-}
-
-function escaparHTML(valor) {
-  return String(valor || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
 
 function obterImagemProduto(produto) {
@@ -47,45 +46,54 @@ function obterImagemProduto(produto) {
     produto?.imagem ||
     produto?.foto_url ||
     produto?.foto ||
+    produto?.image_url ||
     ""
   );
 }
 
-function renderizarImagemProduto(produto, classe = "produto-imagem") {
-  const imagem = obterImagemProduto(produto);
-  const nome = escaparHTML(produto?.nome || "Produto");
+function obterBannerLoja(loja) {
+  return (
+    loja?.banner_url ||
+    loja?.banner ||
+    loja?.imagem_banner ||
+    ""
+  );
+}
 
-  if (imagem) {
-    return `
-      <div class="${classe}">
-        <img src="${escaparHTML(imagem)}" alt="${nome}" loading="lazy">
-      </div>
-    `;
+function obterLogoLoja(loja) {
+  return (
+    loja?.logo_url ||
+    loja?.logo ||
+    loja?.imagem_logo ||
+    ""
+  );
+}
+
+function limitarTexto(texto, limite = 90) {
+  const valor = String(texto || "").trim();
+
+  if (valor.length <= limite) {
+    return valor;
   }
 
-  return `
-    <div class="${classe} produto-sem-foto">
-      <span>Sem foto</span>
+  return `${valor.slice(0, limite).trim()}...`;
+}
+
+function mostrarSkeleton() {
+  if (!produtosLoja) return;
+
+  produtosLoja.innerHTML = `
+    <div class="skeleton-grid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </div>
   `;
 }
 
-function mostrarSkeletonProdutos() {
-  if (!produtosLoja) return;
-
-  produtosLoja.innerHTML = Array.from({ length: 8 }).map(() => `
-    <div class="produto-card skeleton-card">
-      <div class="skeleton skeleton-img"></div>
-      <div class="skeleton skeleton-title"></div>
-      <div class="skeleton skeleton-text"></div>
-      <div class="skeleton skeleton-price"></div>
-      <div class="skeleton skeleton-button"></div>
-    </div>
-  `).join("");
-}
-
 async function carregarLoja() {
-  mostrarSkeletonProdutos();
+  mostrarSkeleton();
 
   const { data, error } = await supabaseClient
     .from("lojas")
@@ -98,7 +106,7 @@ async function carregarLoja() {
     nomeLoja.innerText = "Erro ao carregar loja";
     produtosLoja.innerHTML = `
       <div class="estado-vazio">
-        <h2>Não foi possível carregar o cardápio</h2>
+        <h3>Não foi possível carregar o cardápio.</h3>
         <p>Tente atualizar a página em alguns segundos.</p>
       </div>
     `;
@@ -108,12 +116,55 @@ async function carregarLoja() {
   lojaAtual = data;
   window.DeliveryOSLojaAtual = data;
 
-  nomeLoja.innerText = data.nome || "Minha Loja";
-  descricaoLoja.innerText = data.descricao || "";
-  tempoEntrega.innerText = `${data.tempo_entrega_min || 30} min`;
+  aplicarDadosDaLoja(data);
 
   await carregarCategorias();
   await carregarProdutos();
+}
+
+function aplicarDadosDaLoja(loja) {
+  const nome = loja.nome || "Minha Loja";
+  const descricao = loja.descricao || "Cardápio online";
+  const tempo = loja.tempo_entrega_min || loja.tempo_entrega || 30;
+  const pedidoMinimo = loja.pedido_minimo || loja.valor_minimo || 0;
+  const taxaEntrega = loja.taxa_entrega || loja.entrega_taxa || 0;
+  const aberta = loja.aberta !== false && loja.status !== "fechada";
+  const logo = obterLogoLoja(loja);
+  const banner = obterBannerLoja(loja);
+
+  document.title = `${nome} | Cardápio Online`;
+
+  nomeLoja.innerText = nome;
+  descricaoLoja.innerText = descricao;
+  tempoEntrega.innerText = `⏱️ ${tempo} min`;
+
+  if (pedidoMinimoLoja) {
+    pedidoMinimoLoja.innerText = `Pedido mínimo: ${formatarMoedaLoja(pedidoMinimo)}`;
+  }
+
+  if (taxaEntregaLoja) {
+    taxaEntregaLoja.innerText = Number(taxaEntrega) > 0
+      ? `Entrega: ${formatarMoedaLoja(taxaEntrega)}`
+      : "Entrega a combinar";
+  }
+
+  if (statusLoja) {
+    statusLoja.innerText = aberta ? "Aberta" : "Fechada";
+    statusLoja.classList.toggle("aberto", aberta);
+    statusLoja.classList.toggle("fechado", !aberta);
+  }
+
+  if (lojaLogo) {
+    if (logo) {
+      lojaLogo.innerHTML = `<img src="${logo}" alt="${nome}">`;
+    } else {
+      lojaLogo.innerText = nome.charAt(0).toUpperCase();
+    }
+  }
+
+  if (lojaBanner && banner) {
+    lojaBanner.style.backgroundImage = `linear-gradient(135deg, rgba(17, 24, 39, 0.62), rgba(239, 68, 68, 0.48)), url("${banner}")`;
+  }
 }
 
 async function carregarCategorias() {
@@ -130,6 +181,11 @@ async function carregarCategorias() {
   }
 
   categoriasCache = data || [];
+  renderizarCategorias();
+}
+
+function renderizarCategorias() {
+  if (!categoriasLoja) return;
 
   categoriasLoja.innerHTML = `
     <button class="active" onclick="selecionarCategoria('todas', this)">
@@ -140,15 +196,13 @@ async function carregarCategorias() {
   categoriasCache.forEach((categoria) => {
     categoriasLoja.innerHTML += `
       <button onclick="selecionarCategoria('${categoria.id}', this)">
-        ${escaparHTML(categoria.nome)}
+        ${categoria.nome}
       </button>
     `;
   });
 }
 
 async function carregarProdutos() {
-  mostrarSkeletonProdutos();
-
   const { data, error } = await supabaseClient
     .from("produtos")
     .select(`
@@ -180,8 +234,8 @@ async function carregarProdutos() {
     console.error(error);
     produtosLoja.innerHTML = `
       <div class="estado-vazio">
-        <h2>Erro ao carregar produtos</h2>
-        <p>Atualize a página e tente novamente.</p>
+        <h3>Erro ao carregar produtos.</h3>
+        <p>Verifique a conexão e tente novamente.</p>
       </div>
     `;
     return;
@@ -200,95 +254,138 @@ function selecionarCategoria(categoriaId, botao) {
 
   if (botao) {
     botao.classList.add("active");
+    botao.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest"
+    });
   }
 
   renderizarProdutos();
 }
 
-function renderizarProdutos() {
-  let produtos = produtosCache;
+function filtrarProdutos() {
+  let produtos = [...produtosCache];
 
   if (categoriaSelecionada !== "todas") {
     produtos = produtos.filter((produto) => produto.categoria_id === categoriaSelecionada);
   }
 
+  if (buscaAtual.trim()) {
+    const termo = buscaAtual.trim().toLowerCase();
+
+    produtos = produtos.filter((produto) => {
+      const nome = String(produto.nome || "").toLowerCase();
+      const descricao = String(produto.descricao || "").toLowerCase();
+
+      return nome.includes(termo) || descricao.includes(termo);
+    });
+  }
+
+  return produtos;
+}
+
+function renderizarProdutos() {
+  const produtos = filtrarProdutos();
+
   if (!produtos.length) {
     produtosLoja.innerHTML = `
       <div class="estado-vazio">
-        <h2>Nenhum produto encontrado</h2>
-        <p>Escolha outra categoria ou volte mais tarde.</p>
+        <h3>Nenhum produto encontrado.</h3>
+        <p>Tente buscar por outro nome ou escolha outra categoria.</p>
       </div>
     `;
     return;
   }
 
-  produtosLoja.innerHTML = produtos.map((produto) => {
-    const indisponivel = produto.indisponivel;
-    const descricao = produto.descricao || "";
+  produtosLoja.innerHTML = produtos.map((produto) => criarCardProduto(produto)).join("");
+}
 
-    return `
-      <article class="produto-card ${indisponivel ? "produto-indisponivel" : ""}">
-        ${renderizarImagemProduto(produto)}
+function criarCardProduto(produto) {
+  const indisponivel = produto.indisponivel;
+  const imagem = obterImagemProduto(produto);
+  const descricao = limitarTexto(produto.descricao || "", 95);
+  const precoPromocional = produto.preco_promocional || produto.promocional || null;
+  const temPromocao = precoPromocional && Number(precoPromocional) > 0 && Number(precoPromocional) < Number(produto.preco);
+  const precoAtual = temPromocao ? precoPromocional : produto.preco;
 
-        <div class="produto-card-body">
-          <div class="produto-card-info">
-            <h3>${escaparHTML(produto.nome)}</h3>
-            ${descricao ? `<p>${escaparHTML(descricao)}</p>` : `<p class="produto-sem-descricao">Produto disponível no cardápio.</p>`}
-          </div>
+  return `
+    <article class="produto-card ${indisponivel ? "produto-indisponivel" : ""}">
+      <div class="produto-imagem">
+        ${
+          imagem
+            ? `<img src="${imagem}" alt="${produto.nome}" loading="lazy">`
+            : `<div class="produto-sem-foto">🍽️</div>`
+        }
 
-          <div class="produto-card-footer">
-            <strong>${formatarMoeda(produto.preco)}</strong>
+        ${temPromocao ? `<span class="badge-promocao">Promoção</span>` : ""}
+      </div>
 
-            <button
-              type="button"
-              ${indisponivel ? "disabled" : ""}
-              onclick="abrirProduto('${produto.id}')"
-            >
-              ${indisponivel ? "Indisponível" : "+ Adicionar"}
-            </button>
-          </div>
+      <div class="produto-conteudo">
+        <div class="produto-topo">
+          <h3>${produto.nome}</h3>
         </div>
-      </article>
-    `;
-  }).join("");
+
+        <p>${descricao || "Produto disponível no cardápio."}</p>
+
+        <div class="produto-rodape">
+          <div class="produto-precos">
+            ${
+              temPromocao
+                ? `<small>${formatarMoedaLoja(produto.preco)}</small>`
+                : ""
+            }
+            <strong>${formatarMoedaLoja(precoAtual)}</strong>
+          </div>
+
+          <button
+            type="button"
+            ${indisponivel ? "disabled" : ""}
+            onclick="abrirProduto('${produto.id}', this)"
+          >
+            ${indisponivel ? "Indisponível" : "+ Adicionar"}
+          </button>
+        </div>
+      </div>
+    </article>
+  `;
 }
 
-function garantirImagemNoModal(produto) {
-  const conteudoModal = modalProduto?.querySelector(".modal-produto-content");
-  if (!conteudoModal) return;
-
-  let areaImagem = document.getElementById("modalProdutoImagemArea");
-
-  if (!areaImagem) {
-    areaImagem = document.createElement("div");
-    areaImagem.id = "modalProdutoImagemArea";
-    areaImagem.className = "modal-produto-imagem-area";
-    conteudoModal.insertBefore(areaImagem, modalProdutoNome);
-  }
-
-  areaImagem.innerHTML = renderizarImagemProduto(produto, "modal-produto-imagem");
-}
-
-function abrirProduto(produtoId) {
+function abrirProduto(produtoId, botao) {
   const produto = produtosCache.find((item) => item.id === produtoId);
 
   if (!produto) return;
 
+  if (botao) {
+    botao.classList.add("btn-click");
+    setTimeout(() => botao.classList.remove("btn-click"), 220);
+  }
+
   produtoAtual = produto;
   quantidadeAtual = 1;
 
-  garantirImagemNoModal(produto);
+  const imagem = obterImagemProduto(produto);
+  const precoPromocional = produto.preco_promocional || produto.promocional || null;
+  const temPromocao = precoPromocional && Number(precoPromocional) > 0 && Number(precoPromocional) < Number(produto.preco);
+  const precoAtual = temPromocao ? precoPromocional : produto.preco;
 
   modalProdutoNome.innerText = produto.nome;
   modalProdutoDescricao.innerText = produto.descricao || "";
-  modalProdutoPreco.innerText = formatarMoeda(produto.preco);
+  modalProdutoPreco.innerText = formatarMoedaLoja(precoAtual);
   quantidadeProduto.innerText = quantidadeAtual;
   observacaoProduto.value = "";
+
+  if (modalProdutoImagem) {
+    modalProdutoImagem.innerHTML = imagem
+      ? `<img src="${imagem}" alt="${produto.nome}">`
+      : `<div class="modal-sem-foto">🍽️</div>`;
+  }
 
   renderizarGruposDoProduto(produto);
   atualizarTotalProduto();
 
   modalProduto.classList.remove("oculto");
+  document.body.classList.add("modal-aberto");
 }
 
 function renderizarGruposDoProduto(produto) {
@@ -310,35 +407,40 @@ function renderizarGruposDoProduto(produto) {
 
     if (!adicionais.length) return "";
 
+    const minimo = Number(grupo.minimo || 0);
+    const maximo = Number(grupo.maximo || 0);
+
     return `
-      <div class="grupo-modal" data-grupo-id="${grupo.id}" data-minimo="${grupo.minimo}" data-maximo="${grupo.maximo}">
+      <div class="grupo-modal" data-grupo-id="${grupo.id}" data-minimo="${minimo}" data-maximo="${maximo}">
         <div class="grupo-modal-header">
           <div>
-            <h3>${escaparHTML(grupo.nome)}</h3>
+            <h3>${grupo.nome}</h3>
             <small>
-              ${grupo.minimo > 0 ? `Escolha pelo menos ${grupo.minimo}` : "Opcional"}
-              ${grupo.maximo > 0 ? ` • máximo ${grupo.maximo}` : ""}
+              ${minimo > 0 ? `Escolha pelo menos ${minimo}` : "Opcional"}
+              ${maximo > 0 ? ` • máximo ${maximo}` : ""}
             </small>
           </div>
+
+          ${minimo > 0 ? `<span class="badge-obrigatorio">Obrigatório</span>` : `<span class="badge-opcional">Opcional</span>`}
         </div>
 
-        <div class="lista-adicionais-modal">
+        <div class="adicionais-lista">
           ${adicionais.map((adicional) => `
             <label class="adicional-opcao">
               <div>
                 <input
-                  type="${grupo.maximo === 1 ? "radio" : "checkbox"}"
+                  type="${maximo === 1 ? "radio" : "checkbox"}"
                   name="grupo-${grupo.id}"
                   value="${adicional.id}"
-                  data-nome="${escaparHTML(adicional.nome)}"
+                  data-nome="${adicional.nome}"
                   data-preco="${adicional.preco}"
-                  onchange="aoSelecionarAdicional('${grupo.id}', ${grupo.maximo}, this)"
+                  onchange="aoSelecionarAdicional('${grupo.id}', ${maximo}, this)"
                 >
-                <span>${escaparHTML(adicional.nome)}</span>
+                <span>${adicional.nome}</span>
               </div>
 
               <strong>
-                + ${formatarMoeda(adicional.preco)}
+                + ${formatarMoedaLoja(adicional.preco)}
               </strong>
             </label>
           `).join("")}
@@ -380,14 +482,24 @@ function calcularAdicionaisSelecionados() {
   return totalAdicionais;
 }
 
+function obterPrecoAtualProduto(produto) {
+  const precoPromocional = produto?.preco_promocional || produto?.promocional || null;
+
+  if (precoPromocional && Number(precoPromocional) > 0 && Number(precoPromocional) < Number(produto.preco)) {
+    return Number(precoPromocional);
+  }
+
+  return Number(produto?.preco || 0);
+}
+
 function atualizarTotalProduto() {
   if (!produtoAtual) return;
 
-  const precoProduto = Number(produtoAtual.preco || 0);
+  const precoProduto = obterPrecoAtualProduto(produtoAtual);
   const totalAdicionais = calcularAdicionaisSelecionados();
   const total = (precoProduto + totalAdicionais) * quantidadeAtual;
 
-  totalProdutoModal.innerText = formatarMoeda(total);
+  totalProdutoModal.innerText = formatarMoedaLoja(total);
 }
 
 function validarMinimosAntesDeAdicionar() {
@@ -414,27 +526,19 @@ function validarMinimosAntesDeAdicionar() {
   return true;
 }
 
-function animarCarrinhoResumo() {
-  const carrinhoResumo = document.getElementById("carrinhoResumo");
-  if (!carrinhoResumo) return;
-
-  carrinhoResumo.classList.remove("carrinho-pulse");
-
-  setTimeout(() => {
-    carrinhoResumo.classList.add("carrinho-pulse");
-  }, 20);
+function fecharProduto() {
+  modalProduto.classList.add("oculto");
+  document.body.classList.remove("modal-aberto");
 }
 
 if (fecharModalProduto) {
-  fecharModalProduto.addEventListener("click", () => {
-    modalProduto.classList.add("oculto");
-  });
+  fecharModalProduto.addEventListener("click", fecharProduto);
 }
 
 if (modalProduto) {
   modalProduto.addEventListener("click", (e) => {
     if (e.target === modalProduto) {
-      modalProduto.classList.add("oculto");
+      fecharProduto();
     }
   });
 }
@@ -476,7 +580,7 @@ if (adicionarCarrinho) {
       grupo_id: input.name.replace("grupo-", "")
     }));
 
-    const precoProduto = Number(produtoAtual.preco || 0);
+    const precoProduto = obterPrecoAtualProduto(produtoAtual);
     const totalAdicionais = adicionaisSelecionados.reduce((total, adicional) => {
       return total + Number(adicional.preco || 0);
     }, 0);
@@ -486,7 +590,7 @@ if (adicionarCarrinho) {
       loja_id: produtoAtual.loja_id,
       nome: produtoAtual.nome,
       descricao: produtoAtual.descricao || "",
-      imagem_url: obterImagemProduto(produtoAtual),
+      imagem: obterImagemProduto(produtoAtual),
       preco_unitario: precoProduto,
       quantidade: quantidadeAtual,
       adicionais: adicionaisSelecionados,
@@ -495,8 +599,21 @@ if (adicionarCarrinho) {
     };
 
     window.DeliveryOSCarrinho.adicionar(itemCarrinho);
-    animarCarrinhoResumo();
-    modalProduto.classList.add("oculto");
+
+    const resumo = document.getElementById("carrinhoResumo");
+    if (resumo) {
+      resumo.classList.add("pulse-carrinho");
+      setTimeout(() => resumo.classList.remove("pulse-carrinho"), 450);
+    }
+
+    fecharProduto();
+  });
+}
+
+if (buscarProdutoLoja) {
+  buscarProdutoLoja.addEventListener("input", (event) => {
+    buscaAtual = event.target.value || "";
+    renderizarProdutos();
   });
 }
 
