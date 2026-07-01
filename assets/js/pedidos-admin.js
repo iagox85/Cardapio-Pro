@@ -9,12 +9,12 @@ const totalPedidosPreparo = document.getElementById("totalPedidosPreparo");
 const totalPedidosFinalizados = document.getElementById("totalPedidosFinalizados");
 const totalFaturamentoPedidos = document.getElementById("totalFaturamentoPedidos");
 const btnAtualizarPedidos = document.getElementById("btnAtualizarPedidos");
-const btnSomPedidos = document.getElementById("btnSomPedidos");
+const btnSomPedidos = null;
 const alertaPedidoNovo = document.getElementById("alertaPedidoNovo");
 
 let pedidosCache = [];
 let filtroStatusAtual = "todos";
-let somPedidosAtivo = true;
+let somPedidosAtivo = false;
 let audioPedidoDesbloqueado = false;
 let intervaloSomPedido = null;
 let canalPedidos = null;
@@ -124,9 +124,13 @@ function atualizarBotaoSomPedidos() {
 }
 
 function inicializarPreferenciaSomPedidos() {
-  somPedidosAtivo = lerPreferenciaSomPedidos();
-  audioPedidoDesbloqueado = lerAudioDesbloqueadoPedidos();
-  atualizarBotaoSomPedidos();
+  somPedidosAtivo = true;
+  audioPedidoDesbloqueado = true;
+  try {
+    localStorage.setItem("deliveryos_audio_alertas_ativado", "sim");
+  } catch (error) {
+    // ignora
+  }
 }
 
 
@@ -607,16 +611,54 @@ async function alterarStatusPedido(pedidoId, novoStatus) {
 }
 
 function tocarSomNovoPedido(teste = false) {
-  if (window.DeliveryOSPedidosNotifier?.desbloquearAudio) {
-    window.DeliveryOSPedidosNotifier.desbloquearAudio();
+  if (!somPedidosAtivo && !teste) return;
+  if (!audioPedidoDesbloqueado && !teste) return;
+
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    const tocarNota = (frequencia, inicio, duracao, volume = 0.22) => {
+      const oscilador = audioContext.createOscillator();
+      const ganho = audioContext.createGain();
+
+      oscilador.type = "sine";
+      oscilador.frequency.setValueAtTime(frequencia, audioContext.currentTime + inicio);
+
+      ganho.gain.setValueAtTime(0.001, audioContext.currentTime + inicio);
+      ganho.gain.exponentialRampToValueAtTime(volume, audioContext.currentTime + inicio + 0.03);
+      ganho.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + inicio + duracao);
+
+      oscilador.connect(ganho);
+      ganho.connect(audioContext.destination);
+
+      oscilador.start(audioContext.currentTime + inicio);
+      oscilador.stop(audioContext.currentTime + inicio + duracao);
+    };
+
+    // Ding-dong mais perceptível, em duas ondas
+    tocarNota(784, 0.00, 0.28, 0.24);
+    tocarNota(1046, 0.18, 0.34, 0.26);
+    tocarNota(784, 0.58, 0.28, 0.22);
+    tocarNota(1046, 0.76, 0.38, 0.24);
+
+    audioPedidoDesbloqueado = true;
+    salvarAudioDesbloqueadoPedidos();
+  } catch (error) {
+    console.warn("Não foi possível tocar som:", error);
   }
 }
 
 function iniciarAlertaSonoroPedido() {
-  // Mantido apenas como fallback. O som principal é controlado pelo componente global.
-  if (window.DeliveryOSPedidosNotifier?.mostrarAtivacaoAudio) {
-    window.DeliveryOSPedidosNotifier.mostrarAtivacaoAudio();
+  if (window.DeliveryOSNotificacoes?.iniciarSomContinuo) {
+    window.DeliveryOSNotificacoes.iniciarSomContinuo();
+    return;
   }
+
+  pararAlertaSonoroPedido();
+  tocarSomNovoPedido(true);
+  intervaloSomPedido = setInterval(() => {
+    tocarSomNovoPedido(true);
+  }, 2200);
 }
 
 function pararAlertaSonoroPedido() {
@@ -624,23 +666,22 @@ function pararAlertaSonoroPedido() {
     clearInterval(intervaloSomPedido);
     intervaloSomPedido = null;
   }
-  if (window.DeliveryOSPedidosNotifier?.parar) {
-    window.DeliveryOSPedidosNotifier.parar(false);
+
+  if (window.DeliveryOSNotificacoes?.pararSomContinuo) {
+    window.DeliveryOSNotificacoes.pararSomContinuo();
   }
 }
 
 function ativarSomPedidos() {
   somPedidosAtivo = true;
-  salvarPreferenciaSomPedidos(true);
-  if (window.DeliveryOSPedidosNotifier?.desbloquearAudio) {
-    window.DeliveryOSPedidosNotifier.desbloquearAudio();
+  audioPedidoDesbloqueado = true;
+  if (window.DeliveryOSNotificacoes?.desbloquearAudio) {
+    window.DeliveryOSNotificacoes.desbloquearAudio();
   }
 }
 
 function desativarSomPedidos() {
-  // Não desativa mais o som: em SaaS de delivery o alerta precisa ficar sempre ativo.
   somPedidosAtivo = true;
-  salvarPreferenciaSomPedidos(true);
 }
 
 function mostrarAlertaNovoPedido() {
@@ -692,12 +733,7 @@ function iniciarRealtimePedidos() {
 
           pedidosDestacados.add(pedidoNovo.id);
 
-          if (window.DeliveryOSPedidosNotifier?.notificarNovoPedido) {
-            window.DeliveryOSPedidosNotifier.notificarNovoPedido(pedidoNovo, "pedidos.html");
-          } else {
-            iniciarAlertaSonoroPedido();
-          }
-
+          iniciarAlertaSonoroPedido();
           mostrarAlertaNovoPedido();
 
           setTimeout(() => {
@@ -1140,13 +1176,19 @@ if (btnAtualizarPedidos) {
   });
 }
 
-// O botão de ativar som foi removido.
-// A ativação do áudio agora é feita pelo modal global em deliveryos-notificacoes.js.
-somPedidosAtivo = true;
-salvarPreferenciaSomPedidos(true);
-if (btnSomPedidos) {
-  btnSomPedidos.remove();
-}
+inicializarPreferenciaSomPedidos();
+["pointerdown", "keydown", "touchstart", "click"].forEach((evento) => {
+  window.addEventListener(
+    evento,
+    () => {
+      if (somPedidosAtivo && !audioPedidoDesbloqueado) {
+        tentarDesbloquearAudioPedidos();
+        atualizarBotaoSomPedidos();
+      }
+    },
+    { passive: true }
+  );
+});
 
 
 window.addEventListener("storage", (event) => {
