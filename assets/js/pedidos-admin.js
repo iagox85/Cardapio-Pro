@@ -23,6 +23,7 @@ let lojaAtualPedidos = null;
 
 const DELIVERYOS_SOM_PEDIDOS_KEY = "deliveryos_som_pedidos_ativo";
 const DELIVERYOS_AUDIO_DESBLOQUEADO_KEY = "deliveryos_audio_pedidos_desbloqueado";
+const DELIVERYOS_PEDIDO_RESOLVIDO_KEY = "deliveryos_pedido_notificacao_resolvida";
 
 function salvarPreferenciaSomPedidos(ativo) {
   try {
@@ -45,6 +46,33 @@ function salvarAudioDesbloqueadoPedidos() {
     localStorage.setItem(DELIVERYOS_AUDIO_DESBLOQUEADO_KEY, "sim");
   } catch (error) {
     console.warn("Não foi possível salvar desbloqueio de áudio.", error);
+  }
+}
+
+function publicarPedidoResolvidoPainelPedidos(pedidoId = null) {
+  const payload = {
+    tipo: "pedido_resolvido",
+    pedido_id: pedidoId,
+    origem: "pedidos.html",
+    timestamp: Date.now()
+  };
+
+  try {
+    localStorage.setItem(DELIVERYOS_PEDIDO_RESOLVIDO_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Não foi possível avisar as outras abas que o pedido foi resolvido.", error);
+  }
+
+  try {
+    const canal = new BroadcastChannel("deliveryos_pedidos");
+    canal.postMessage(payload);
+    canal.close();
+  } catch (error) {
+    // BroadcastChannel pode não estar disponível em navegadores antigos.
+  }
+
+  if (window.DeliveryOSPedidosNotifier?.parar) {
+    window.DeliveryOSPedidosNotifier.parar(false);
   }
 }
 
@@ -512,6 +540,7 @@ function atualizarResumoPedidos() {
 
 async function alterarStatusPedido(pedidoId, novoStatus) {
   pararAlertaSonoroPedido();
+  publicarPedidoResolvidoPainelPedidos(pedidoId);
   let query = supabaseClient
     .from("pedidos")
     .update({
@@ -583,6 +612,7 @@ function tocarSomNovoPedido(teste = false) {
 
 function iniciarAlertaSonoroPedido() {
   if (!somPedidosAtivo || !audioPedidoDesbloqueado) return;
+  if (document.visibilityState === "hidden") return;
 
   pararAlertaSonoroPedido();
 
@@ -1128,6 +1158,26 @@ if (btnSomPedidos) {
       desativarSomPedidos();
     }
   });
+}
+
+
+window.addEventListener("storage", (event) => {
+  if (event.key === DELIVERYOS_PEDIDO_RESOLVIDO_KEY) {
+    pararAlertaSonoroPedido();
+    if (alertaPedidoNovo) alertaPedidoNovo.classList.add("oculto");
+  }
+});
+
+try {
+  const canalPedidosResolvidos = new BroadcastChannel("deliveryos_pedidos");
+  canalPedidosResolvidos.onmessage = (event) => {
+    if (event?.data?.tipo === "pedido_resolvido") {
+      pararAlertaSonoroPedido();
+      if (alertaPedidoNovo) alertaPedidoNovo.classList.add("oculto");
+    }
+  };
+} catch (error) {
+  // BroadcastChannel pode não estar disponível em todos os navegadores.
 }
 
 window.alterarStatusPedido = alterarStatusPedido;
