@@ -1237,3 +1237,29 @@ button {
     font-size: 20px;
   }
 }
+
+
+/* Ajuste dos botões sociais: ícones claros de Instagram e WhatsApp */
+.social-icone-texto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0;
+  line-height: 1;
+}
+
+.social-instagram .social-icone-texto::before {
+  content: "IG";
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.social-whatsapp .social-icone-texto::before {
+  content: "WA";
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
