@@ -1,81 +1,55 @@
 // ============================================================
 // DELIVERYOS - NOTIFICAÇÕES GLOBAIS DE PEDIDOS
 // ------------------------------------------------------------
-// - Um único serviço global para alertas de novos pedidos.
-// - Funciona em todo o painel: Pedidos, Produtos, Configurações,
-//   Categorias, Relatórios etc.
-// - Usa Supabase Realtime por loja.
-// - Exibe modal de ativação sonora por sessão, necessário por
-//   bloqueio de áudio dos navegadores, principalmente no celular.
-// - Depois de ativado, toca som contínuo até o pedido ser aceito,
-//   cancelado, silenciado ou ter o status alterado.
+// Regras:
+// - O áudio é ativado uma única vez por modal.
+// - Fora de pedidos.html: notifica visualmente e toca som.
+// - Em pedidos.html: não mostra toast global; o som é usado pelo pedidos-admin.js.
+// - Ao aceitar/cancelar pedido em pedidos.html, todas as abas param.
 // ============================================================
 
 (function () {
-  if (window.DeliveryOSPedidosNotifier) return;
+  if (window.DeliveryOSNotificacoes && window.DeliveryOSNotificacoes.__ativo) return;
 
-  const CANAL_ABAS = "deliveryos_pedidos";
-  const AUDIO_PERMITIDO_KEY = "deliveryos_audio_pedidos_permitido";
-  const AUDIO_SESSAO_KEY = "deliveryos_audio_pedidos_sessao_liberada";
+  const paginaAtual = (window.location.pathname || "").split("/").pop().toLowerCase() || "admin.html";
+  const estaNaPaginaPedidos = paginaAtual === "pedidos.html";
+
+  const AUDIO_ATIVADO_KEY = "deliveryos_audio_alertas_ativado";
   const PEDIDO_RESOLVIDO_KEY = "deliveryos_pedido_notificacao_resolvida";
-  const ULTIMO_PEDIDO_KEY = "deliveryos_ultimo_pedido_notificado";
+  const NOTIFICACAO_BROWSER_KEY = "deliveryos_notificacao_browser_perguntou";
 
   let lojaIdAtual = null;
-  let canalRealtime = null;
-  let canalAbas = null;
+  let canalPedidosGlobal = null;
   let audioContext = null;
+  let audioLiberadoNestaPagina = false;
   let intervaloSom = null;
   let intervaloTitulo = null;
   let tituloOriginal = document.title;
   let pedidoAtualId = null;
-  let pedidoAtualDados = null;
   let ultimoPedidoNotificado = null;
-  let audioLiberadoNaSessao = false;
+  let broadcastChannel = null;
 
-  function normalizar(valor) {
+  function normalizarTexto(valor) {
     return String(valor || "").trim();
   }
 
-  function getPathPagina() {
-    return (window.location.pathname || "").split("/").pop() || "admin.html";
-  }
-
-  function audioPermitidoPeloUsuario() {
+  function audioEstaAtivado() {
     try {
-      return localStorage.getItem(AUDIO_PERMITIDO_KEY) === "sim";
+      return localStorage.getItem(AUDIO_ATIVADO_KEY) === "sim";
     } catch (error) {
       return false;
     }
   }
 
-  function audioLiberadoNestaSessao() {
+  function salvarAudioAtivado() {
     try {
-      return sessionStorage.getItem(AUDIO_SESSAO_KEY) === "sim";
-    } catch (error) {
-      return audioLiberadoNaSessao;
-    }
-  }
-
-  function marcarAudioLiberado() {
-    audioLiberadoNaSessao = true;
-
-    try {
-      localStorage.setItem(AUDIO_PERMITIDO_KEY, "sim");
+      localStorage.setItem(AUDIO_ATIVADO_KEY, "sim");
     } catch (error) {
       // ignora
     }
-
-    try {
-      sessionStorage.setItem(AUDIO_SESSAO_KEY, "sim");
-    } catch (error) {
-      // ignora
-    }
-
-    removerModalAudio();
-    removerAvisoAudioBloqueado();
   }
 
-  function obterAudioContext() {
+  function criarAudioContext() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return null;
 
@@ -88,52 +62,56 @@
 
   async function desbloquearAudio() {
     try {
-      const ctx = obterAudioContext();
+      const ctx = criarAudioContext();
       if (!ctx) return false;
 
       if (ctx.state === "suspended") {
         await ctx.resume();
       }
 
-      const agora = ctx.currentTime;
       const oscilador = ctx.createOscillator();
       const ganho = ctx.createGain();
 
-      oscilador.type = "sine";
-      oscilador.frequency.setValueAtTime(880, agora);
-      ganho.gain.setValueAtTime(0.0001, agora);
-
+      ganho.gain.setValueAtTime(0.0001, ctx.currentTime);
       oscilador.connect(ganho);
       ganho.connect(ctx.destination);
-      oscilador.start(agora);
-      oscilador.stop(agora + 0.03);
+      oscilador.start();
+      oscilador.stop(ctx.currentTime + 0.03);
 
-      marcarAudioLiberado();
+      audioLiberadoNestaPagina = true;
+      salvarAudioAtivado();
+      removerModalAtivacaoAudio();
+      removerAvisoToqueAudio();
+      pedirPermissaoBrowserNotification();
       return true;
     } catch (error) {
-      console.warn("DeliveryOS: áudio ainda bloqueado pelo navegador.", error);
-      mostrarModalAudio();
+      audioLiberadoNestaPagina = false;
       return false;
     }
   }
 
-  async function tocarSomPedido() {
-    if (!audioLiberadoNestaSessao()) {
-      mostrarModalAudio();
-      return false;
+  function pedirPermissaoBrowserNotification() {
+    try {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "default") return;
+      if (localStorage.getItem(NOTIFICACAO_BROWSER_KEY) === "sim") return;
+
+      localStorage.setItem(NOTIFICACAO_BROWSER_KEY, "sim");
+      Notification.requestPermission().catch(() => {});
+    } catch (error) {
+      // ignora
     }
+  }
+
+  function tocarSomPedido() {
+    if (!audioEstaAtivado()) return false;
 
     try {
-      const ctx = obterAudioContext();
+      const ctx = criarAudioContext();
       if (!ctx) return false;
 
       if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-
-      if (ctx.state !== "running") {
-        mostrarAvisoAudioBloqueado();
-        return false;
+        ctx.resume().catch(() => {});
       }
 
       const agora = ctx.currentTime;
@@ -146,7 +124,7 @@
         oscilador.frequency.setValueAtTime(frequencia, agora + inicio);
 
         ganho.gain.setValueAtTime(0.001, agora + inicio);
-        ganho.gain.exponentialRampToValueAtTime(volume, agora + inicio + 0.025);
+        ganho.gain.exponentialRampToValueAtTime(volume, agora + inicio + 0.03);
         ganho.gain.exponentialRampToValueAtTime(0.001, agora + inicio + duracao);
 
         oscilador.connect(ganho);
@@ -155,31 +133,35 @@
         oscilador.stop(agora + inicio + duracao);
       }
 
-      nota(784, 0.00, 0.24, 0.24);
-      nota(1046, 0.17, 0.28, 0.28);
-      nota(784, 0.52, 0.24, 0.22);
-      nota(1046, 0.69, 0.32, 0.25);
+      nota(784, 0.00, 0.28, 0.24);
+      nota(1046, 0.18, 0.34, 0.26);
+      nota(784, 0.58, 0.28, 0.22);
+      nota(1046, 0.76, 0.38, 0.24);
 
       return true;
     } catch (error) {
-      console.warn("DeliveryOS: não foi possível tocar o alerta sonoro.", error);
-      mostrarAvisoAudioBloqueado();
       return false;
     }
   }
 
-  async function iniciarSomContinuo() {
-    pararSomContinuo();
-
-    const tocou = await tocarSomPedido();
-
-    if (!tocou) {
-      mostrarModalAudio();
+  function iniciarSomContinuo() {
+    if (!audioEstaAtivado()) {
+      mostrarModalAtivacaoAudio();
       return;
     }
 
+    pararSomContinuo();
+
+    const tocou = tocarSomPedido();
+    if (!tocou && !audioLiberadoNestaPagina) {
+      mostrarAvisoToqueAudio();
+    }
+
     intervaloSom = setInterval(() => {
-      tocarSomPedido();
+      const ok = tocarSomPedido();
+      if (!ok && !audioLiberadoNestaPagina) {
+        mostrarAvisoToqueAudio();
+      }
     }, 2200);
   }
 
@@ -197,7 +179,7 @@
     intervaloTitulo = setInterval(() => {
       alternar = !alternar;
       document.title = alternar ? "🔔 Novo pedido!" : tituloOriginal;
-    }, 850);
+    }, 900);
   }
 
   function pararPiscarTitulo() {
@@ -205,7 +187,6 @@
       clearInterval(intervaloTitulo);
       intervaloTitulo = null;
     }
-
     document.title = tituloOriginal;
   }
 
@@ -217,32 +198,67 @@
   }
 
   function nomeCliente(pedido) {
-    return normalizar(pedido?.cliente_nome) || normalizar(pedido?.nome_cliente) || normalizar(pedido?.nome) || "Cliente";
+    return normalizarTexto(pedido?.cliente_nome) || normalizarTexto(pedido?.nome_cliente) || normalizarTexto(pedido?.nome) || "Cliente";
   }
 
   function totalPedido(pedido) {
     return pedido?.total ?? pedido?.valor_total ?? pedido?.total_pedido ?? 0;
   }
 
-  function pedidoEstaNovo(status) {
-    const valor = normalizar(status).toLowerCase();
-    return ["", "novo", "novo_pedido", "pendente", "recebido"].includes(valor);
+  function statusNovo(status) {
+    const valor = normalizarTexto(status).toLowerCase();
+    return valor === "" || valor === "novo" || valor === "novo_pedido" || valor === "pendente" || valor === "recebido";
   }
 
-  function pedidoFoiResolvido(pedidoId) {
-    try {
-      const bruto = localStorage.getItem(PEDIDO_RESOLVIDO_KEY);
-      if (!bruto) return false;
-      const dados = JSON.parse(bruto);
-      return Boolean(dados?.pedido_id && pedidoId && String(dados.pedido_id) === String(pedidoId));
-    } catch (error) {
-      return false;
-    }
+  function mostrarModalAtivacaoAudio() {
+    if (document.getElementById("deliveryosAudioModal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "deliveryosAudioModal";
+    modal.className = "deliveryos-audio-modal";
+    modal.innerHTML = `
+      <div class="deliveryos-audio-modal-card">
+        <div class="deliveryos-audio-modal-icon">🔔</div>
+        <h2>Ativar notificações sonoras</h2>
+        <p>Para avisar quando chegar um novo pedido, o DeliveryOS precisa ativar o som neste navegador.</p>
+        <button type="button" id="deliveryosBtnAtivarAudio">Ativar alertas</button>
+        <small>Você só precisa fazer isso uma vez neste dispositivo.</small>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector("#deliveryosBtnAtivarAudio")?.addEventListener("click", async () => {
+      const ok = await desbloquearAudio();
+      if (!ok && typeof window.showToast === "function") {
+        window.showToast("Não foi possível ativar o áudio. Toque novamente na tela e tente de novo.", "error");
+      }
+    });
   }
 
-  function criarAlertaVisual() {
+  function removerModalAtivacaoAudio() {
+    document.getElementById("deliveryosAudioModal")?.remove();
+  }
+
+  function mostrarAvisoToqueAudio() {
+    if (document.getElementById("deliveryosAudioTapHint")) return;
+
+    const aviso = document.createElement("button");
+    aviso.type = "button";
+    aviso.id = "deliveryosAudioTapHint";
+    aviso.className = "deliveryos-audio-tap-hint";
+    aviso.innerHTML = "🔔 Toque aqui para liberar o som dos pedidos";
+    document.body.appendChild(aviso);
+
+    aviso.addEventListener("click", desbloquearAudio);
+  }
+
+  function removerAvisoToqueAudio() {
+    document.getElementById("deliveryosAudioTapHint")?.remove();
+  }
+
+  function criarAlertaGlobal() {
     let alerta = document.getElementById("deliveryosPedidoGlobalAlert");
-
     if (alerta) return alerta;
 
     alerta = document.createElement("div");
@@ -252,7 +268,7 @@
       <div class="deliveryos-pedido-global-icon">🔔</div>
       <div class="deliveryos-pedido-global-content">
         <strong>Novo pedido recebido</strong>
-        <span id="deliveryosPedidoGlobalTexto">Abra a tela de pedidos para aceitar.</span>
+        <span id="deliveryosPedidoGlobalTexto">Abra Pedidos para aceitar.</span>
       </div>
       <div class="deliveryos-pedido-global-actions">
         <button type="button" id="deliveryosBtnVerPedidoGlobal">Ver pedidos</button>
@@ -263,18 +279,21 @@
     document.body.appendChild(alerta);
 
     alerta.querySelector("#deliveryosBtnVerPedidoGlobal")?.addEventListener("click", () => {
+      pararNotificacao(false);
       window.location.href = "pedidos.html";
     });
 
     alerta.querySelector("#deliveryosBtnSilenciarPedidoGlobal")?.addEventListener("click", () => {
-      parar(true, pedidoAtualId);
+      pararNotificacao(true, pedidoAtualId);
     });
 
     return alerta;
   }
 
-  function mostrarAlertaVisual(pedido) {
-    const alerta = criarAlertaVisual();
+  function mostrarAlertaGlobal(pedido) {
+    if (estaNaPaginaPedidos) return;
+
+    const alerta = criarAlertaGlobal();
     const texto = alerta.querySelector("#deliveryosPedidoGlobalTexto");
 
     if (texto) {
@@ -284,12 +303,13 @@
     alerta.classList.remove("oculto");
   }
 
-  function ocultarAlertaVisual() {
-    const alerta = document.getElementById("deliveryosPedidoGlobalAlert");
-    if (alerta) alerta.classList.add("oculto");
+  function ocultarAlertaGlobal() {
+    document.getElementById("deliveryosPedidoGlobalAlert")?.classList.add("oculto");
   }
 
-  function mostrarToastPedido(pedido) {
+  function mostrarToastGlobal(pedido) {
+    if (estaNaPaginaPedidos) return;
+
     if (typeof window.showToast === "function") {
       window.showToast(`${nomeCliente(pedido)} • ${formatarMoeda(totalPedido(pedido))}`, "warning", {
         titulo: "Novo pedido recebido",
@@ -298,73 +318,11 @@
     }
   }
 
-  function mostrarAvisoAudioBloqueado() {
-    if (document.getElementById("deliveryosAudioBloqueadoAviso")) return;
-
-    const aviso = document.createElement("div");
-    aviso.id = "deliveryosAudioBloqueadoAviso";
-    aviso.className = "deliveryos-audio-bloqueado-aviso";
-    aviso.innerHTML = `
-      <span>🔔</span>
-      <div>
-        <strong>Som bloqueado pelo navegador</strong>
-        <small>Toque em Ativar alertas para liberar o som dos pedidos.</small>
-      </div>
-      <button type="button">Ativar</button>
-    `;
-
-    aviso.querySelector("button")?.addEventListener("click", async () => {
-      const liberou = await desbloquearAudio();
-      if (liberou && pedidoAtualDados) iniciarSomContinuo();
-    });
-
-    document.body.appendChild(aviso);
-  }
-
-  function removerAvisoAudioBloqueado() {
-    const aviso = document.getElementById("deliveryosAudioBloqueadoAviso");
-    if (aviso) aviso.remove();
-  }
-
-  function mostrarModalAudio() {
-    if (audioLiberadoNestaSessao()) return;
-    if (document.getElementById("deliveryosAudioModal")) return;
-
-    const modal = document.createElement("div");
-    modal.id = "deliveryosAudioModal";
-    modal.className = "deliveryos-audio-modal-overlay";
-    modal.innerHTML = `
-      <div class="deliveryos-audio-modal-card">
-        <div class="deliveryos-audio-modal-icon">🔔</div>
-        <span class="deliveryos-audio-modal-kicker">Alertas de pedidos</span>
-        <h2>Ativar notificações sonoras</h2>
-        <p>Para o DeliveryOS tocar quando chegar um novo pedido, toque no botão abaixo. O navegador exige essa confirmação uma vez por sessão.</p>
-        <button type="button" id="deliveryosBtnAtivarAudioPedidos">Ativar alertas</button>
-        <small>Recomendado para computador, tablet e celular usado no balcão.</small>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    modal.querySelector("#deliveryosBtnAtivarAudioPedidos")?.addEventListener("click", async () => {
-      const liberou = await desbloquearAudio();
-      if (liberou) {
-        pedirPermissaoNotificacaoBrowser();
-        if (pedidoAtualDados) iniciarSomContinuo();
-      }
-    });
-  }
-
-  function removerModalAudio() {
-    const modal = document.getElementById("deliveryosAudioModal");
-    if (modal) modal.remove();
-  }
-
-  function publicarResolvido(pedidoId = null) {
+  function publicarPedidoResolvido(pedidoId = null) {
     const payload = {
       tipo: "pedido_resolvido",
       pedido_id: pedidoId,
-      origem: getPathPagina(),
+      origem: paginaAtual,
       timestamp: Date.now()
     };
 
@@ -375,59 +333,38 @@
     }
 
     try {
-      if (canalAbas) canalAbas.postMessage(payload);
+      if (broadcastChannel) broadcastChannel.postMessage(payload);
     } catch (error) {
       // ignora
     }
   }
 
-  function parar(publicar = false, pedidoId = null) {
+  function pararNotificacao(publicar = false, pedidoId = null) {
     pararSomContinuo();
     pararPiscarTitulo();
-    ocultarAlertaVisual();
-    removerAvisoAudioBloqueado();
-
+    ocultarAlertaGlobal();
     pedidoAtualId = null;
-    pedidoAtualDados = null;
 
-    if (publicar) publicarResolvido(pedidoId);
+    if (publicar) publicarPedidoResolvido(pedidoId);
   }
 
-  function notificarNovoPedido(pedido, origem = "realtime") {
+  function notificarNovoPedido(pedido) {
     if (!pedido?.id) return;
-    if (!pedidoEstaNovo(pedido.status)) return;
-    if (pedidoFoiResolvido(pedido.id)) return;
+    if (pedido.id === ultimoPedidoNotificado) return;
 
-    const idPedido = String(pedido.id);
-    const ultimo = String(ultimoPedidoNotificado || localStorage.getItem(ULTIMO_PEDIDO_KEY) || "");
+    ultimoPedidoNotificado = pedido.id;
+    pedidoAtualId = pedido.id;
 
-    if (pedidoAtualId === idPedido && ultimo === idPedido) return;
-
-    pedidoAtualId = idPedido;
-    pedidoAtualDados = pedido;
-    ultimoPedidoNotificado = idPedido;
-
-    try {
-      localStorage.setItem(ULTIMO_PEDIDO_KEY, idPedido);
-    } catch (error) {
-      // ignora
-    }
-
-    mostrarToastPedido(pedido);
-    mostrarAlertaVisual(pedido);
+    mostrarToastGlobal(pedido);
+    mostrarAlertaGlobal(pedido);
     iniciarPiscarTitulo();
+    iniciarSomContinuo();
 
-    if (!audioLiberadoNestaSessao()) {
-      mostrarModalAudio();
-    } else {
-      iniciarSomContinuo();
-    }
-
-    if ("Notification" in window && Notification.permission === "granted") {
+    if (!estaNaPaginaPedidos && "Notification" in window && Notification.permission === "granted") {
       try {
         new Notification("Novo pedido recebido", {
           body: `${nomeCliente(pedido)} • ${formatarMoeda(totalPedido(pedido))}`,
-          tag: `deliveryos-pedido-${idPedido}`
+          tag: `deliveryos-pedido-${pedido.id}`
         });
       } catch (error) {
         // ignora
@@ -438,10 +375,8 @@
   async function carregarLojaDoUsuario() {
     if (!window.supabaseClient) return null;
 
-    const { data: authData, error: erroAuth } = await supabaseClient.auth.getUser();
-    const user = authData?.user;
-
-    if (erroAuth || !user) return null;
+    const { data: { user }, error: erroUsuario } = await supabaseClient.auth.getUser();
+    if (erroUsuario || !user) return null;
 
     const { data: vinculo, error: erroVinculo } = await supabaseClient
       .from("usuarios_loja")
@@ -450,36 +385,23 @@
       .single();
 
     if (erroVinculo || !vinculo?.loja_id) return null;
-
     lojaIdAtual = vinculo.loja_id;
     return lojaIdAtual;
   }
 
-  async function verificarPedidoPendenteInicial() {
-    if (!lojaIdAtual || !window.supabaseClient) return;
+  async function iniciarRealtimeGlobal() {
+    // Em pedidos.html, quem controla a fila e o som é pedidos-admin.js.
+    // O global fica carregado só para modal/desbloqueio/parada entre abas.
+    if (estaNaPaginaPedidos) return;
 
-    const { data, error } = await supabaseClient
-      .from("pedidos")
-      .select("*")
-      .eq("loja_id", lojaIdAtual)
-      .eq("status", "novo")
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (error || !Array.isArray(data) || !data.length) return;
-
-    notificarNovoPedido(data[0], "inicial");
-  }
-
-  async function iniciarRealtime() {
     const lojaId = await carregarLojaDoUsuario();
     if (!lojaId || !window.supabaseClient) return;
 
-    if (canalRealtime) {
-      supabaseClient.removeChannel(canalRealtime);
+    if (canalPedidosGlobal) {
+      supabaseClient.removeChannel(canalPedidosGlobal);
     }
 
-    canalRealtime = supabaseClient
+    canalPedidosGlobal = supabaseClient
       .channel(`deliveryos-pedidos-global-${lojaId}-${Date.now()}`)
       .on(
         "postgres_changes",
@@ -490,27 +412,27 @@
           filter: `loja_id=eq.${lojaId}`
         },
         (payload) => {
-          const novo = payload.new;
-          const antigo = payload.old;
+          const pedidoNovo = payload.new;
+          const pedidoAntigo = payload.old;
 
           if (payload.eventType === "INSERT") {
-            if (!novo || String(novo.loja_id) !== String(lojaIdAtual)) return;
-            notificarNovoPedido(novo, "realtime");
+            if (!pedidoNovo || pedidoNovo.loja_id !== lojaIdAtual) return;
+            if (!statusNovo(pedidoNovo.status)) return;
+            notificarNovoPedido(pedidoNovo);
             return;
           }
 
           if (payload.eventType === "UPDATE") {
-            if (!novo || String(novo.loja_id) !== String(lojaIdAtual)) return;
-
-            if (pedidoAtualId && String(novo.id) === String(pedidoAtualId) && !pedidoEstaNovo(novo.status)) {
-              parar(true, novo.id);
+            if (!pedidoNovo || pedidoNovo.loja_id !== lojaIdAtual) return;
+            if (pedidoAtualId && pedidoNovo.id === pedidoAtualId && !statusNovo(pedidoNovo.status)) {
+              pararNotificacao(false, pedidoNovo.id);
             }
             return;
           }
 
           if (payload.eventType === "DELETE") {
-            if (pedidoAtualId && String(antigo?.id) === String(pedidoAtualId)) {
-              parar(true, antigo.id);
+            if (pedidoAtualId && pedidoAntigo?.id === pedidoAtualId) {
+              pararNotificacao(false, pedidoAntigo.id);
             }
           }
         }
@@ -518,82 +440,69 @@
       .subscribe((status) => {
         console.log("DeliveryOS notificações globais:", status);
       });
-
-    verificarPedidoPendenteInicial();
   }
 
-  function pedirPermissaoNotificacaoBrowser() {
-    if (!("Notification" in window)) return;
-    if (Notification.permission !== "default") return;
+  function configurarSincroniaAbas() {
+    window.addEventListener("storage", (event) => {
+      if (event.key === PEDIDO_RESOLVIDO_KEY) {
+        pararNotificacao(false);
+      }
+    });
 
     try {
-      Notification.requestPermission().catch(() => {});
-    } catch (error) {
-      // ignora
-    }
-  }
-
-  function configurarComunicacaoEntreAbas() {
-    try {
-      canalAbas = new BroadcastChannel(CANAL_ABAS);
-      canalAbas.onmessage = (event) => {
+      broadcastChannel = new BroadcastChannel("deliveryos_pedidos");
+      broadcastChannel.onmessage = (event) => {
         if (event?.data?.tipo === "pedido_resolvido") {
-          parar(false);
+          pararNotificacao(false);
         }
       };
     } catch (error) {
-      canalAbas = null;
+      broadcastChannel = null;
+    }
+  }
+
+  function configurarDesbloqueioPorInteracao() {
+    ["pointerdown", "touchstart", "keydown", "click"].forEach((evento) => {
+      window.addEventListener(evento, () => {
+        if (audioEstaAtivado() && !audioLiberadoNestaPagina) {
+          desbloquearAudio();
+        }
+      }, { passive: true, once: false });
+    });
+  }
+
+  function inicializar() {
+    configurarSincroniaAbas();
+    configurarDesbloqueioPorInteracao();
+
+    if (!audioEstaAtivado()) {
+      mostrarModalAtivacaoAudio();
+    } else {
+      // Tenta preparar automaticamente. Se o navegador bloquear, a próxima interação libera.
+      desbloquearAudio();
     }
 
-    window.addEventListener("storage", (event) => {
-      if (event.key === PEDIDO_RESOLVIDO_KEY) {
-        parar(false);
-      }
-    });
+    iniciarRealtimeGlobal();
   }
 
-  function configurarInteracoes() {
-    // Caso a sessão já tenha consentimento salvo e o usuário clique em qualquer lugar,
-    // tentamos liberar o áudio sem mostrar botão permanente.
-    ["pointerdown", "touchstart", "keydown", "click"].forEach((evento) => {
-      window.addEventListener(
-        evento,
-        () => {
-          if (audioPermitidoPeloUsuario() && !audioLiberadoNestaSessao()) {
-            desbloquearAudio();
-          }
-        },
-        { passive: true }
-      );
-    });
-
-    window.addEventListener("visibilitychange", () => {
-      if (!document.hidden && pedidoAtualDados && pedidoAtualId && audioLiberadoNestaSessao()) {
-        tocarSomPedido();
-      }
-    });
-  }
-
-  window.DeliveryOSPedidosNotifier = {
-    iniciar: iniciarRealtime,
-    parar,
-    publicarPedidoResolvido: publicarResolvido,
-    notificarNovoPedido,
+  window.DeliveryOSNotificacoes = {
+    __ativo: true,
+    iniciar: iniciarRealtimeGlobal,
+    parar: pararNotificacao,
+    publicarPedidoResolvido,
+    iniciarSomContinuo,
+    pararSomContinuo,
+    tocarSomPedido,
     desbloquearAudio,
-    mostrarAtivacaoAudio: mostrarModalAudio
+    audioEstaAtivado
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
-    audioLiberadoNaSessao = audioLiberadoNestaSessao();
+  // Compatibilidade com versões anteriores do painel.
+  window.DeliveryOSPedidosNotifier = window.DeliveryOSNotificacoes;
 
-    configurarComunicacaoEntreAbas();
-    configurarInteracoes();
-    iniciarRealtime();
-
-    setTimeout(() => {
-      if (!audioLiberadoNestaSessao()) {
-        mostrarModalAudio();
-      }
-    }, 650);
-  });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inicializar);
+  } else {
+    inicializar();
+  }
 })();
