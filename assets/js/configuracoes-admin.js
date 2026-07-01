@@ -18,6 +18,26 @@ const lojaLogoArquivo = document.getElementById("lojaLogoArquivo");
 const previewBannerLoja = document.getElementById("previewBannerLoja");
 const previewLogoLoja = document.getElementById("previewLogoLoja");
 
+
+const botoesAbasConfiguracoes = document.querySelectorAll(".config-tab-btn");
+const paineisAbasConfiguracoes = document.querySelectorAll(".config-tab-pane");
+
+function ativarAbaConfiguracoes(nomeAba) {
+  botoesAbasConfiguracoes.forEach((botao) => {
+    botao.classList.toggle("ativo", botao.dataset.tab === nomeAba);
+  });
+
+  paineisAbasConfiguracoes.forEach((painel) => {
+    painel.classList.toggle("ativo", painel.dataset.tabContent === nomeAba);
+  });
+}
+
+botoesAbasConfiguracoes.forEach((botao) => {
+  botao.addEventListener("click", () => {
+    ativarAbaConfiguracoes(botao.dataset.tab);
+  });
+});
+
 let lojaAtual = null;
 let lojaSlugAtual = "";
 let linkPublicoAtual = "";
