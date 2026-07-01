@@ -1,45 +1,49 @@
 // ============================================================
-// DELIVERYOS - CENTRAL GLOBAL DE NOTIFICAÇÕES DE PEDIDOS
-// Versão reescrita do zero
+// DELIVERYOS - NOTIFICAÇÕES GLOBAIS DE PEDIDOS
+// Versão definitiva/isolada: não interfere nos scripts das páginas.
 // ------------------------------------------------------------
-// Responsabilidades deste arquivo:
-// - Identificar a loja do usuário logado.
-// - Escutar novos pedidos em todas as páginas do painel.
-// - Usar Realtime + consulta periódica como fallback.
-// - Tocar som fora da aba Pedidos.
-// - Mostrar alerta visual fora da aba Pedidos.
-// - Liberar áudio com modal de ativação apenas uma vez.
-// - Sincronizar parada entre abas quando pedido for aceito/cancelado.
+// - Carregado no final do HTML.
+// - Funciona fora da página Pedidos.
+// - Em pedidos.html não exibe toast global.
+// - Usa Realtime + polling a cada 4s.
+// - Modal libera o áudio conforme regra do navegador.
+// - Entrar em pedidos.html para o alerta das outras abas.
 // ============================================================
 
 (function () {
   "use strict";
 
-  if (window.DeliveryOSNotificacoes?.__versao === "fresh-20260701") return;
+  const VERSION = "20260701-fixdef";
+  if (window.DeliveryOSNotificacoes && window.DeliveryOSNotificacoes.__version === VERSION) return;
 
-  const paginaAtual = (window.location.pathname.split("/").pop() || "admin.html").toLowerCase();
-  const estaNaPaginaPedidos = paginaAtual === "pedidos.html";
+  const page = (location.pathname.split("/").pop() || "admin.html").toLowerCase();
+  const isPedidosPage = page === "pedidos.html";
 
-  const STORAGE_AUDIO_OK = "deliveryos_audio_alertas_ativado";
-  const STORAGE_BASELINE = "deliveryos_notif_baseline_";
-  const STORAGE_EVENTO_PARAR = "deliveryos_pedido_notificacao_resolvida";
-  const STORAGE_ULTIMO_ALERTA = "deliveryos_notif_ultimo_alerta_";
+  const POLL_MS = 4000;
+  const SOUND_MS = 2200;
 
-  const CANAL_ABAS = "deliveryos_pedidos";
-  const INTERVALO_POLLING_MS = 5000;
-  const INTERVALO_SOM_MS = 2200;
+  const KEY_AUDIO = "deliveryos_audio_alertas_ativado";
+  const KEY_BASELINE_PREFIX = "deliveryos_notif_fixdef_baseline_";
+  const KEY_LAST_ALERT_PREFIX = "deliveryos_notif_fixdef_last_alert_";
+  const KEY_STOP_EVENT = "deliveryos_notif_fixdef_stop_event";
+  const BC_NAME = "deliveryos_notificacoes_pedidos";
 
   let lojaId = null;
-  let canalRealtime = null;
-  let canalAbas = null;
-  let pollingTimer = null;
-  let somTimer = null;
-  let tituloTimer = null;
-  let audioContext = null;
-  let audioLiberado = false;
-  let pedidoAtivoId = null;
-  let tituloOriginal = document.title;
-  let inicializando = false;
+  let userId = null;
+  let realtimeChannel = null;
+  let broadcast = null;
+  let pollTimer = null;
+  let soundTimer = null;
+  let titleTimer = null;
+  let audioCtx = null;
+  let audioUnlockedThisPage = false;
+  let activeOrderId = null;
+  let originalTitle = document.title;
+  let started = false;
+
+  function safe(fn, fallback = null) {
+    try { return fn(); } catch (_) { return fallback; }
+  }
 
   function log(...args) {
     console.log("[DeliveryOS Notificações]", ...args);
@@ -49,65 +53,57 @@
     console.warn("[DeliveryOS Notificações]", ...args);
   }
 
-  function getStorage(chave, padrao = "") {
-    try {
-      const valor = localStorage.getItem(chave);
-      return valor === null ? padrao : valor;
-    } catch (error) {
-      return padrao;
-    }
+  function getLS(key, fallback = "") {
+    return safe(() => localStorage.getItem(key), null) ?? fallback;
   }
 
-  function setStorage(chave, valor) {
-    try {
-      localStorage.setItem(chave, valor);
-    } catch (error) {
-      // ignora
-    }
+  function setLS(key, value) {
+    safe(() => localStorage.setItem(key, String(value)));
   }
 
-  function audioAtivado() {
-    return getStorage(STORAGE_AUDIO_OK) === "sim";
+  function audioEnabled() {
+    return getLS(KEY_AUDIO) === "sim";
   }
 
-  function statusEhNovo(status) {
+  function baselineKey() {
+    return KEY_BASELINE_PREFIX + (lojaId || "sem_loja");
+  }
+
+  function lastAlertKey() {
+    return KEY_LAST_ALERT_PREFIX + (lojaId || "sem_loja");
+  }
+
+  function isNovoStatus(status) {
     const s = String(status || "").trim().toLowerCase();
     return !s || s === "novo" || s === "pendente" || s === "recebido" || s === "novo_pedido";
   }
 
-  function pedidoCriadoEm(pedido) {
-    return new Date(pedido?.created_at || pedido?.criado_em || pedido?.data || Date.now()).getTime();
+  function orderTime(order) {
+    const raw = order?.created_at || order?.criado_em || order?.data || order?.updated_at;
+    const t = raw ? new Date(raw).getTime() : Date.now();
+    return Number.isFinite(t) ? t : Date.now();
   }
 
-  function nomeCliente(pedido) {
-    return String(pedido?.cliente_nome || pedido?.nome_cliente || pedido?.nome || "Cliente").trim();
+  function orderClient(order) {
+    return String(order?.cliente_nome || order?.nome_cliente || order?.nome || "Cliente").trim();
   }
 
-  function totalPedido(pedido) {
-    const total = pedido?.total ?? pedido?.valor_total ?? pedido?.total_pedido ?? 0;
-    return Number(total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  function orderTotal(order) {
+    const value = Number(order?.total ?? order?.valor_total ?? order?.total_pedido ?? 0) || 0;
+    return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function baselineKey() {
-    return `${STORAGE_BASELINE}${lojaId || "sem_loja"}`;
+  function getAudioContext() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!audioCtx) audioCtx = new Ctx();
+    return audioCtx;
   }
 
-  function ultimoAlertaKey() {
-    return `${STORAGE_ULTIMO_ALERTA}${lojaId || "sem_loja"}`;
-  }
-
-  function criarAudioContext() {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return null;
-    if (!audioContext) audioContext = new AudioContextClass();
-    return audioContext;
-  }
-
-  async function desbloquearAudio() {
+  async function unlockAudio() {
     try {
-      const ctx = criarAudioContext();
+      const ctx = getAudioContext();
       if (!ctx) return false;
-
       if (ctx.state === "suspended") await ctx.resume();
 
       const osc = ctx.createOscillator();
@@ -117,97 +113,94 @@
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.04);
+      osc.stop(ctx.currentTime + 0.03);
 
-      audioLiberado = true;
-      setStorage(STORAGE_AUDIO_OK, "sim");
-      removerModalAudio();
-      removerAvisoAudio();
+      audioUnlockedThisPage = true;
+      setLS(KEY_AUDIO, "sim");
+      removeAudioModal();
+      removeTapHint();
       return true;
     } catch (error) {
-      warn("Áudio bloqueado pelo navegador.", error);
-      audioLiberado = false;
+      warn("Áudio ainda bloqueado pelo navegador.", error);
+      audioUnlockedThisPage = false;
       return false;
     }
   }
 
-  function tocarSomUmaVez() {
-    if (!audioAtivado()) {
-      mostrarModalAudio();
+  function playBeep() {
+    if (!audioEnabled()) {
+      showAudioModal();
       return false;
     }
 
     try {
-      const ctx = criarAudioContext();
+      const ctx = getAudioContext();
       if (!ctx) return false;
 
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
 
-      const agora = ctx.currentTime;
+      const now = ctx.currentTime;
+      const notes = [
+        [784, 0.00, 0.28, 0.24],
+        [1046, 0.18, 0.34, 0.26],
+        [784, 0.58, 0.28, 0.22],
+        [1046, 0.76, 0.38, 0.24]
+      ];
 
-      function nota(freq, inicio, duracao, volume) {
+      notes.forEach(([freq, start, duration, volume]) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, agora + inicio);
-        gain.gain.setValueAtTime(0.001, agora + inicio);
-        gain.gain.exponentialRampToValueAtTime(volume, agora + inicio + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, agora + inicio + duracao);
+        osc.frequency.setValueAtTime(freq, now + start);
+        gain.gain.setValueAtTime(0.001, now + start);
+        gain.gain.exponentialRampToValueAtTime(volume, now + start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start(agora + inicio);
-        osc.stop(agora + inicio + duracao);
-      }
+        osc.start(now + start);
+        osc.stop(now + start + duration);
+      });
 
-      nota(784, 0.00, 0.28, 0.24);
-      nota(1046, 0.18, 0.34, 0.26);
-      nota(784, 0.58, 0.28, 0.22);
-      nota(1046, 0.76, 0.38, 0.24);
       return true;
     } catch (error) {
-      warn("Falha ao tocar som.", error);
+      warn("Falha ao tocar alerta sonoro.", error);
+      showTapHint();
       return false;
     }
   }
 
-  function iniciarSomContinuo() {
-    pararSomContinuo();
-    const ok = tocarSomUmaVez();
-    if (!ok && !audioLiberado) mostrarAvisoAudio();
-    somTimer = setInterval(() => {
-      const tocou = tocarSomUmaVez();
-      if (!tocou && !audioLiberado) mostrarAvisoAudio();
-    }, INTERVALO_SOM_MS);
+  function startSound() {
+    stopSound();
+    if (!playBeep()) showTapHint();
+    soundTimer = setInterval(() => {
+      if (!playBeep()) showTapHint();
+    }, SOUND_MS);
   }
 
-  function pararSomContinuo() {
-    if (somTimer) {
-      clearInterval(somTimer);
-      somTimer = null;
-    }
+  function stopSound() {
+    if (soundTimer) clearInterval(soundTimer);
+    soundTimer = null;
   }
 
-  function iniciarTituloPiscando() {
-    pararTituloPiscando();
-    let alternar = false;
-    tituloTimer = setInterval(() => {
-      alternar = !alternar;
-      document.title = alternar ? "🔔 Novo pedido!" : tituloOriginal;
+  function startTitleBlink() {
+    stopTitleBlink();
+    let on = false;
+    titleTimer = setInterval(() => {
+      on = !on;
+      document.title = on ? "🔔 Novo pedido!" : originalTitle;
     }, 900);
   }
 
-  function pararTituloPiscando() {
-    if (tituloTimer) {
-      clearInterval(tituloTimer);
-      tituloTimer = null;
-    }
-    document.title = tituloOriginal;
+  function stopTitleBlink() {
+    if (titleTimer) clearInterval(titleTimer);
+    titleTimer = null;
+    document.title = originalTitle;
   }
 
-  function mostrarModalAudio() {
-    if (audioAtivado()) return;
+  function showAudioModal() {
+    if (audioEnabled()) return;
     if (document.getElementById("deliveryosAudioModal")) return;
 
     const modal = document.createElement("div");
@@ -217,48 +210,49 @@
       <div class="deliveryos-audio-modal-card">
         <div class="deliveryos-audio-modal-icon">🔔</div>
         <h2>Ativar notificações sonoras</h2>
-        <p>Para avisar quando chegar um novo pedido, toque em ativar. Você só precisa fazer isso uma vez neste dispositivo.</p>
+        <p>Ative os alertas para o painel tocar quando chegar um novo pedido.</p>
         <button type="button" id="deliveryosBtnAtivarAudio">Ativar alertas</button>
-        <small>O navegador exige essa confirmação para liberar sons.</small>
+        <small>O navegador exige esse toque para liberar sons.</small>
       </div>
     `;
-
     document.body.appendChild(modal);
     modal.querySelector("#deliveryosBtnAtivarAudio")?.addEventListener("click", async () => {
-      const ok = await desbloquearAudio();
+      const ok = await unlockAudio();
       if (ok && typeof window.showToast === "function") {
         window.showToast("Alertas sonoros ativados.", "success");
       }
     });
   }
 
-  function removerModalAudio() {
+  function removeAudioModal() {
     document.getElementById("deliveryosAudioModal")?.remove();
   }
 
-  function mostrarAvisoAudio() {
+  function showTapHint() {
+    if (!audioEnabled()) return;
     if (document.getElementById("deliveryosAudioTapHint")) return;
-    const aviso = document.createElement("button");
-    aviso.type = "button";
-    aviso.id = "deliveryosAudioTapHint";
-    aviso.className = "deliveryos-audio-tap-hint";
-    aviso.textContent = "🔔 Toque para liberar o som dos pedidos";
-    aviso.addEventListener("click", desbloquearAudio);
-    document.body.appendChild(aviso);
+
+    const hint = document.createElement("button");
+    hint.id = "deliveryosAudioTapHint";
+    hint.type = "button";
+    hint.className = "deliveryos-audio-tap-hint";
+    hint.textContent = "🔔 Toque para liberar o som dos pedidos";
+    hint.addEventListener("click", unlockAudio);
+    document.body.appendChild(hint);
   }
 
-  function removerAvisoAudio() {
+  function removeTapHint() {
     document.getElementById("deliveryosAudioTapHint")?.remove();
   }
 
-  function criarAlerta() {
-    let alerta = document.getElementById("deliveryosPedidoGlobalAlert");
-    if (alerta) return alerta;
+  function getAlertEl() {
+    let el = document.getElementById("deliveryosPedidoGlobalAlert");
+    if (el) return el;
 
-    alerta = document.createElement("div");
-    alerta.id = "deliveryosPedidoGlobalAlert";
-    alerta.className = "deliveryos-pedido-global-alert oculto";
-    alerta.innerHTML = `
+    el = document.createElement("div");
+    el.id = "deliveryosPedidoGlobalAlert";
+    el.className = "deliveryos-pedido-global-alert oculto";
+    el.innerHTML = `
       <div class="deliveryos-pedido-global-icon">🔔</div>
       <div class="deliveryos-pedido-global-content">
         <strong>Novo pedido recebido</strong>
@@ -269,282 +263,285 @@
         <button type="button" id="deliveryosBtnSilenciarPedidoGlobal">Silenciar</button>
       </div>
     `;
-    document.body.appendChild(alerta);
+    document.body.appendChild(el);
 
-    alerta.querySelector("#deliveryosBtnVerPedidoGlobal")?.addEventListener("click", () => {
-      pararNotificacao(true, pedidoAtivoId);
-      window.location.href = "pedidos.html";
+    el.querySelector("#deliveryosBtnVerPedidoGlobal")?.addEventListener("click", () => {
+      publishStop(activeOrderId);
+      stopAll(false);
+      location.href = "pedidos.html";
     });
 
-    alerta.querySelector("#deliveryosBtnSilenciarPedidoGlobal")?.addEventListener("click", () => {
-      pararNotificacao(true, pedidoAtivoId);
+    el.querySelector("#deliveryosBtnSilenciarPedidoGlobal")?.addEventListener("click", () => {
+      publishStop(activeOrderId);
+      stopAll(false);
     });
 
-    return alerta;
+    return el;
   }
 
-  function mostrarAlerta(pedido) {
-    if (estaNaPaginaPedidos) return;
-    const alerta = criarAlerta();
-    const texto = alerta.querySelector("#deliveryosPedidoGlobalTexto");
-    if (texto) texto.textContent = `${nomeCliente(pedido)} • ${totalPedido(pedido)}`;
-    alerta.classList.remove("oculto");
+  function showGlobalAlert(order) {
+    if (isPedidosPage) return;
+    const el = getAlertEl();
+    const text = el.querySelector("#deliveryosPedidoGlobalTexto");
+    if (text) text.textContent = `${orderClient(order)} • ${orderTotal(order)}`;
+    el.classList.remove("oculto");
   }
 
-  function ocultarAlerta() {
+  function hideGlobalAlert() {
     document.getElementById("deliveryosPedidoGlobalAlert")?.classList.add("oculto");
   }
 
-  function mostrarToast(pedido) {
-    if (estaNaPaginaPedidos) return;
+  function showToast(order) {
+    if (isPedidosPage) return;
     if (typeof window.showToast === "function") {
-      window.showToast(`${nomeCliente(pedido)} • ${totalPedido(pedido)}`, "warning", {
+      window.showToast(`${orderClient(order)} • ${orderTotal(order)}`, "warning", {
         titulo: "Novo pedido recebido",
-        duracao: 9000
+        duracao: 10000
       });
     }
   }
 
-  function publicarParada(pedidoId) {
-    const payload = {
-      tipo: "pedido_resolvido",
-      pedido_id: pedidoId || null,
-      origem: paginaAtual,
-      timestamp: Date.now()
-    };
+  function publishStop(orderId) {
+    const payload = { type: "stop", orderId: orderId || null, page, at: Date.now() };
+    setLS(KEY_STOP_EVENT, JSON.stringify(payload));
+    safe(() => broadcast && broadcast.postMessage(payload));
+  }
 
-    setStorage(STORAGE_EVENTO_PARAR, JSON.stringify(payload));
+  function stopAll(shouldPublish = false, orderId = null) {
+    stopSound();
+    stopTitleBlink();
+    hideGlobalAlert();
+    activeOrderId = null;
+    if (shouldPublish) publishStop(orderId);
+  }
 
-    try {
-      if (canalAbas) canalAbas.postMessage(payload);
-    } catch (error) {
-      // ignora
+  function notify(order, source = "unknown") {
+    if (!order || !order.id || !isNovoStatus(order.status)) return;
+
+    const id = String(order.id);
+    if (getLS(lastAlertKey()) === id) return;
+    setLS(lastAlertKey(), id);
+
+    activeOrderId = id;
+    log("Novo pedido", id, "via", source, "página", page);
+
+    if (isPedidosPage) return;
+
+    showToast(order);
+    showGlobalAlert(order);
+    startSound();
+    startTitleBlink();
+  }
+
+  async function waitForSupabase() {
+    for (let i = 0; i < 80; i++) {
+      if (window.supabaseClient) return true;
+      await new Promise((r) => setTimeout(r, 100));
     }
+    return false;
   }
 
-  function pararNotificacao(publicar = false, pedidoId = null) {
-    pararSomContinuo();
-    pararTituloPiscando();
-    ocultarAlerta();
-    pedidoAtivoId = null;
-    if (publicar) publicarParada(pedidoId);
-  }
-
-  function notificarPedido(pedido, origem = "desconhecida") {
-    if (!pedido?.id) return;
-    if (!statusEhNovo(pedido.status)) return;
-
-    const ultimo = getStorage(ultimoAlertaKey());
-    if (String(ultimo) === String(pedido.id)) return;
-
-    setStorage(ultimoAlertaKey(), String(pedido.id));
-    pedidoAtivoId = pedido.id;
-
-    log("Novo pedido detectado por", origem, pedido.id, paginaAtual);
-
-    // Em pedidos.html a tela de pedidos continua exibindo o alerta da própria fila.
-    // Fora dela, o painel global mostra toast, card e som.
-    if (!estaNaPaginaPedidos) {
-      mostrarToast(pedido);
-      mostrarAlerta(pedido);
-      iniciarSomContinuo();
-      iniciarTituloPiscando();
-    }
-  }
-
-  async function carregarLoja() {
-    if (lojaId) return lojaId;
-    if (!window.supabaseClient) {
+  async function loadStore() {
+    const ok = await waitForSupabase();
+    if (!ok) {
       warn("supabaseClient não encontrado.");
       return null;
     }
 
-    const { data: authData, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !authData?.user) return null;
+    const { data: authData, error: authError } = await window.supabaseClient.auth.getUser();
+    if (authError || !authData?.user?.id) return null;
+    userId = authData.user.id;
 
-    const userId = authData.user.id;
-
-    const { data: vinculo, error } = await supabaseClient
+    let res = await window.supabaseClient
       .from("usuarios_loja")
       .select("loja_id")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (error || !vinculo?.loja_id) {
-      warn("Usuário sem loja vinculada para notificações.", error);
+    if ((!res.data || res.error) && res.error) {
+      // fallback para bancos antigos que usaram usuario_id
+      const res2 = await window.supabaseClient
+        .from("usuarios_loja")
+        .select("loja_id")
+        .eq("usuario_id", userId)
+        .maybeSingle();
+      res = res2;
+    }
+
+    if (!res.data?.loja_id) {
+      warn("Nenhuma loja encontrada para notificação global.", res.error || "");
       return null;
     }
 
-    lojaId = vinculo.loja_id;
+    lojaId = res.data.loja_id;
     return lojaId;
   }
 
-  async function definirBaselineInicial() {
-    if (!lojaId) return;
-    if (getStorage(baselineKey())) return;
-
-    const { data, error } = await supabaseClient
-      .from("pedidos")
-      .select("id, created_at")
-      .eq("loja_id", lojaId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (!error && Array.isArray(data) && data[0]) {
-      setStorage(baselineKey(), String(pedidoCriadoEm(data[0])));
-    } else {
-      setStorage(baselineKey(), String(Date.now()));
-    }
-  }
-
-  async function verificarPedidosNovos(origem = "polling") {
-    if (!lojaId || !window.supabaseClient) return;
-
-    const baseline = Number(getStorage(baselineKey(), "0")) || 0;
-
-    const { data, error } = await supabaseClient
+  async function fetchLatestOrders(limit = 8) {
+    if (!lojaId || !window.supabaseClient) return [];
+    const { data, error } = await window.supabaseClient
       .from("pedidos")
       .select("*")
       .eq("loja_id", lojaId)
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(limit);
 
     if (error) {
-      warn("Erro no fallback de pedidos.", error);
-      return;
+      warn("Erro ao buscar pedidos para notificações.", error);
+      return [];
     }
-
-    const novos = (data || [])
-      .filter((pedido) => statusEhNovo(pedido.status))
-      .filter((pedido) => pedidoCriadoEm(pedido) > baseline)
-      .sort((a, b) => pedidoCriadoEm(a) - pedidoCriadoEm(b));
-
-    if (!novos.length) return;
-
-    const pedidoMaisRecente = novos[novos.length - 1];
-    setStorage(baselineKey(), String(pedidoCriadoEm(pedidoMaisRecente)));
-    notificarPedido(pedidoMaisRecente, origem);
+    return Array.isArray(data) ? data : [];
   }
 
-  function iniciarPolling() {
-    if (pollingTimer) clearInterval(pollingTimer);
-    pollingTimer = setInterval(() => verificarPedidosNovos("polling"), INTERVALO_POLLING_MS);
+  async function setInitialBaseline() {
+    const orders = await fetchLatestOrders(1);
+    const latest = orders[0];
+    const current = Number(getLS(baselineKey(), "0")) || 0;
+    const latestTime = latest ? orderTime(latest) : Date.now();
+
+    // Nova versão usa chave nova. Na primeira carga, não toca pedidos antigos.
+    if (!current) setLS(baselineKey(), String(latestTime));
+
+    // Ao entrar em Pedidos, considera tudo visualizado e para outras abas.
+    if (isPedidosPage) {
+      setLS(baselineKey(), String(Math.max(current, latestTime)));
+      publishStop(null);
+    }
   }
 
-  async function iniciarRealtime() {
+  async function checkNewOrders(source = "polling") {
+    if (!lojaId) return;
+    const baseline = Number(getLS(baselineKey(), "0")) || 0;
+    const orders = await fetchLatestOrders(10);
+
+    const newOnes = orders
+      .filter((o) => isNovoStatus(o.status))
+      .filter((o) => orderTime(o) > baseline)
+      .sort((a, b) => orderTime(a) - orderTime(b));
+
+    if (!newOnes.length) return;
+
+    const latest = newOnes[newOnes.length - 1];
+    setLS(baselineKey(), String(orderTime(latest)));
+    notify(latest, source);
+  }
+
+  async function startRealtime() {
     if (!lojaId || !window.supabaseClient) return;
 
     try {
-      if (canalRealtime) await supabaseClient.removeChannel(canalRealtime);
-    } catch (error) {
-      // ignora
-    }
+      if (realtimeChannel) await window.supabaseClient.removeChannel(realtimeChannel);
+    } catch (_) {}
 
-    canalRealtime = supabaseClient
-      .channel(`deliveryos-notificacoes-${lojaId}-${Date.now()}`)
+    realtimeChannel = window.supabaseClient
+      .channel(`deliveryos-global-orders-${lojaId}-${Date.now()}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "pedidos",
-          filter: `loja_id=eq.${lojaId}`
-        },
+        { event: "*", schema: "public", table: "pedidos", filter: `loja_id=eq.${lojaId}` },
         (payload) => {
-          const novo = payload.new;
-          const antigo = payload.old;
+          const order = payload.new;
+          const old = payload.old;
 
-          if (payload.eventType === "INSERT" && novo) {
-            if (!statusEhNovo(novo.status)) return;
-            const criado = pedidoCriadoEm(novo);
-            const baseline = Number(getStorage(baselineKey(), "0")) || 0;
-            if (criado > baseline) setStorage(baselineKey(), String(criado));
-            notificarPedido(novo, "realtime");
+          if (payload.eventType === "INSERT" && order && isNovoStatus(order.status)) {
+            const t = orderTime(order);
+            const baseline = Number(getLS(baselineKey(), "0")) || 0;
+            if (t > baseline) setLS(baselineKey(), String(t));
+            notify(order, "realtime");
             return;
           }
 
-          if (payload.eventType === "UPDATE" && novo) {
-            if (pedidoAtivoId && String(novo.id) === String(pedidoAtivoId) && !statusEhNovo(novo.status)) {
-              pararNotificacao(false, novo.id);
+          if (payload.eventType === "UPDATE" && order) {
+            if (activeOrderId && String(order.id) === String(activeOrderId) && !isNovoStatus(order.status)) {
+              stopAll(false, order.id);
             }
             return;
           }
 
-          if (payload.eventType === "DELETE" && antigo) {
-            if (pedidoAtivoId && String(antigo.id) === String(pedidoAtivoId)) {
-              pararNotificacao(false, antigo.id);
-            }
+          if (payload.eventType === "DELETE" && old) {
+            if (activeOrderId && String(old.id) === String(activeOrderId)) stopAll(false, old.id);
           }
         }
       )
-      .subscribe((status) => log("Realtime", status));
+      .subscribe((status) => log("Realtime:", status));
   }
 
-  function configurarSincroniaAbas() {
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(() => checkNewOrders("polling"), POLL_MS);
+  }
+
+  function setupCrossTab() {
     window.addEventListener("storage", (event) => {
-      if (event.key === STORAGE_EVENTO_PARAR) pararNotificacao(false);
+      if (event.key === KEY_STOP_EVENT) stopAll(false);
     });
 
     try {
-      canalAbas = new BroadcastChannel(CANAL_ABAS);
-      canalAbas.onmessage = (event) => {
-        if (event?.data?.tipo === "pedido_resolvido") pararNotificacao(false);
+      broadcast = new BroadcastChannel(BC_NAME);
+      broadcast.onmessage = (event) => {
+        if (event?.data?.type === "stop") stopAll(false);
       };
-    } catch (error) {
-      canalAbas = null;
+    } catch (_) {
+      broadcast = null;
     }
   }
 
-  function configurarDesbloqueioPorInteracao() {
-    ["click", "pointerdown", "touchstart", "keydown"].forEach((evento) => {
-      window.addEventListener(
-        evento,
-        () => {
-          if (audioAtivado() && !audioLiberado) desbloquearAudio();
-        },
-        { passive: true }
-      );
+  function setupAudioGestures() {
+    ["click", "pointerdown", "touchstart", "keydown"].forEach((eventName) => {
+      window.addEventListener(eventName, () => {
+        if (audioEnabled() && !audioUnlockedThisPage) unlockAudio();
+      }, { passive: true });
     });
   }
 
-  async function iniciar() {
-    if (inicializando) return;
-    inicializando = true;
+  async function start() {
+    if (started) return;
+    started = true;
 
-    configurarSincroniaAbas();
-    configurarDesbloqueioPorInteracao();
+    setupCrossTab();
+    setupAudioGestures();
 
-    if (!audioAtivado()) mostrarModalAudio();
+    if (!audioEnabled()) showAudioModal();
 
-    await carregarLoja();
+    await loadStore();
     if (!lojaId) return;
 
-    await definirBaselineInicial();
-    await iniciarRealtime();
-    iniciarPolling();
+    await setInitialBaseline();
+    await startRealtime();
+    startPolling();
 
-    log("Serviço iniciado", { paginaAtual, lojaId, estaNaPaginaPedidos });
+    // Pequena checagem inicial após tudo carregar.
+    setTimeout(() => checkNewOrders("startup-check"), 1500);
+
+    log("Serviço iniciado", { page, lojaId, isPedidosPage, version: VERSION });
   }
 
   window.DeliveryOSNotificacoes = {
-    __versao: "fresh-20260701",
-    iniciar,
-    verificarPedidosNovos,
-    notificarPedido,
-    parar: pararNotificacao,
-    pararSomContinuo,
-    iniciarSomContinuo,
-    tocarSomPedido: tocarSomUmaVez,
-    desbloquearAudio,
-    audioEstaAtivado: audioAtivado,
-    publicarPedidoResolvido: publicarParada
+    __version: VERSION,
+    start,
+    iniciar: start,
+    checkNewOrders,
+    verificarPedidosNovos: checkNewOrders,
+    notify,
+    notificarPedido: notify,
+    stop: stopAll,
+    parar: stopAll,
+    stopSound,
+    pararSomContinuo: stopSound,
+    startSound,
+    iniciarSomContinuo: startSound,
+    unlockAudio,
+    desbloquearAudio: unlockAudio,
+    audioEnabled,
+    audioEstaAtivado: audioEnabled,
+    publishStop,
+    publicarPedidoResolvido: publishStop
   };
 
   window.DeliveryOSPedidosNotifier = window.DeliveryOSNotificacoes;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", iniciar);
+    document.addEventListener("DOMContentLoaded", () => setTimeout(start, 0));
   } else {
-    iniciar();
+    setTimeout(start, 0);
   }
 })();
