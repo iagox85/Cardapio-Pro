@@ -13,22 +13,40 @@
     <div class="loja-banner-overlay"></div>
 
     <div class="loja-header-content">
-      <div class="loja-avatar" id="lojaLogo">D</div>
+      <div class="loja-header-left">
+        <div class="loja-avatar" id="lojaLogo">D</div>
 
-      <div class="loja-info">
-        <div class="loja-status-line">
-          <span id="statusLoja" class="status-loja aberto">Aberta</span>
-          <span id="tempoEntrega">Carregando...</span>
-        </div>
+        <div class="loja-info">
+          <div class="loja-status-line">
+            <span id="statusLoja" class="status-loja aberto">Aberta</span>
+            <span id="tempoEntrega">Carregando...</span>
+            <span id="tipoAtendimentoLoja">Entrega e retirada</span>
+          </div>
 
-        <h1 id="nomeLoja">Carregando...</h1>
-        <p id="descricaoLoja"></p>
+          <h1 id="nomeLoja">Carregando...</h1>
+          <p id="descricaoLoja"></p>
 
-        <div class="loja-meta">
-          <span id="pedidoMinimoLoja">Pedido mínimo: R$ 0,00</span>
-          <span id="taxaEntregaLoja">Entrega a combinar</span>
+          <div class="loja-meta loja-meta-principal">
+            <span id="pedidoMinimoLoja">Pedido mínimo: R$ 0,00</span>
+            <span id="taxaEntregaLoja">Entrega a combinar</span>
+          </div>
         </div>
       </div>
+
+      <div class="loja-header-social" id="redesSociaisTopo">
+        <strong>Siga-nos</strong>
+        <div class="loja-social-links">
+          <a id="instagramTopo" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Instagram">◎</a>
+          <a id="whatsappTopo" href="#" target="_blank" rel="noopener" class="oculto" aria-label="WhatsApp">☘</a>
+          <a id="facebookTopo" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Facebook">f</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="loja-detalhes-barra">
+      <span id="enderecoLojaTopo">📍 Endereço não informado</span>
+      <span id="telefoneLojaTopo">☎ Telefone não informado</span>
+      <span id="horarioLojaTopo">🕒 Atendimento online</span>
     </div>
   </div>
 </header>
@@ -54,6 +72,55 @@
     </div>
   </section>
 </main>
+
+<footer class="loja-footer">
+  <div class="loja-footer-content">
+    <div class="footer-col footer-brand">
+      <h3 id="nomeLojaRodape">DeliveryOS</h3>
+      <p id="descricaoLojaRodape">Cardápio online seguro, rápido e fácil de usar.</p>
+      <div class="footer-social" id="redesSociaisRodape">
+        <a id="instagramRodape" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Instagram">◎</a>
+        <a id="whatsappRodape" href="#" target="_blank" rel="noopener" class="oculto" aria-label="WhatsApp">☘</a>
+        <a id="facebookRodape" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Facebook">f</a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Informações</h4>
+      <p id="enderecoLojaRodape">📍 Endereço não informado</p>
+      <p id="telefoneLojaRodape">☎ Telefone não informado</p>
+      <p id="horarioLojaRodape">🕒 Atendimento online</p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Atendimento</h4>
+      <p>💬 Pedido enviado pelo WhatsApp</p>
+      <p>🛒 Acompanhe seu pedido na loja</p>
+      <p>✅ Entrega ou retirada no balcão</p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Pagamento</h4>
+      <div class="pagamentos-lista" id="formasPagamentoRodape">
+        <span>PIX</span>
+        <span>Dinheiro</span>
+        <span>Cartão</span>
+      </div>
+    </div>
+
+    <div class="footer-col footer-seguranca">
+      <h4>Segurança</h4>
+      <p>🔒 Site seguro</p>
+      <p>🛡️ Seus dados protegidos</p>
+      <p class="powered">Powered by <strong>DeliveryOS</strong></p>
+    </div>
+  </div>
+
+  <div class="loja-footer-bottom">
+    <span id="copyrightLoja">© 2026 DeliveryOS. Todos os direitos reservados.</span>
+    <span>Política de Privacidade • Termos de Uso</span>
+  </div>
+</footer>
 
 <div id="modalProduto" class="modal-produto oculto">
   <div class="modal-produto-content modal-produto-app">
