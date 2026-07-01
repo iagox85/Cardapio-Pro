@@ -1,13 +1,27 @@
 // ============================================================
-// CHECKOUT - DELIVERYOS 1.0
-// Fluxo inspirado em aplicativos profissionais:
-// Pedido -> Entrega/Retirada -> Endereço -> Pagamento -> Confirmação
+// CHECKOUT - DELIVERYOS 1.1
+// Melhorias:
+// - Barra de progresso com nomes das etapas
+// - Botão voltar em todas as etapas
+// - Dados salvos no navegador
+// - Validação em tempo real sem alertas desnecessários
+// - Resumo fixo no desktop
+// - Mensagem de WhatsApp mais organizada
+// - Tenta salvar pedido no Supabase antes de abrir o WhatsApp
 // ============================================================
 
 const CHECKOUT_STORAGE_KEY = "deliveryos_checkout_dados";
 
 let checkoutEtapaAtual = 1;
 let checkoutDados = carregarDadosCheckout();
+
+const CHECKOUT_ETAPAS = [
+  { numero: 1, nome: "Pedido" },
+  { numero: 2, nome: "Entrega" },
+  { numero: 3, nome: "Dados" },
+  { numero: 4, nome: "Pagamento" },
+  { numero: 5, nome: "Confirmar" }
+];
 
 function checkoutMoeda(valor) {
   return Number(valor || 0).toLocaleString("pt-BR", {
@@ -117,6 +131,20 @@ function calcularTotalCheckout() {
   return calcularSubtotalCheckout() + obterTaxaEntregaCheckout();
 }
 
+function normalizarTelefoneCliente(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function telefoneValido(valor) {
+  const numero = normalizarTelefoneCliente(valor);
+  return numero.length >= 10 && numero.length <= 13;
+}
+
+function cepValido(valor) {
+  const cep = String(valor || "").replace(/\D/g, "");
+  return !cep || cep.length === 8;
+}
+
 function instalarCheckout() {
   if (document.getElementById("modalCheckout")) return;
 
@@ -127,14 +155,14 @@ function instalarCheckout() {
   modal.className = "checkout-modal oculto";
   modal.innerHTML = `
     <div class="checkout-content">
-      <button id="fecharCheckout" class="checkout-fechar" type="button">×</button>
+      <button id="fecharCheckout" class="checkout-fechar" type="button" aria-label="Fechar checkout">×</button>
 
       <div class="checkout-layout">
         <section class="checkout-main">
           <header class="checkout-header">
-            <span>Checkout</span>
+            <span>Checkout seguro</span>
             <h2>Finalize seu pedido</h2>
-            <p>Preencha apenas o necessário para confirmar.</p>
+            <p>Preencha as informações para enviar o pedido para a loja.</p>
           </header>
 
           <div class="checkout-steps" id="checkoutSteps"></div>
@@ -142,7 +170,7 @@ function instalarCheckout() {
         </section>
 
         <aside class="checkout-resumo">
-          <h3>Resumo</h3>
+          <h3>Resumo do pedido</h3>
           <div id="checkoutResumoItens"></div>
           <div class="checkout-totais" id="checkoutTotais"></div>
         </aside>
@@ -150,6 +178,12 @@ function instalarCheckout() {
 
       <footer class="checkout-footer">
         <button id="checkoutVoltar" class="checkout-btn checkout-btn-secundario" type="button">Voltar</button>
+
+        <div class="checkout-footer-total">
+          <span>Total</span>
+          <strong id="checkoutTotalFooter">R$ 0,00</strong>
+        </div>
+
         <button id="checkoutContinuar" class="checkout-btn checkout-btn-principal" type="button">Continuar</button>
       </footer>
     </div>
@@ -249,21 +283,49 @@ function instalarEstilosCheckout() {
 
     .checkout-steps {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-      margin: 24px 0;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 24px 0 26px;
     }
 
     .checkout-step {
-      border-radius: 999px;
-      height: 8px;
-      background: #e5e7eb;
-      overflow: hidden;
+      display: grid;
+      gap: 8px;
+      min-width: 0;
     }
 
-    .checkout-step.ativo,
-    .checkout-step.concluido {
+    .checkout-step-indicador {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: #e5e7eb;
+      color: #6b7280;
+      font-weight: 900;
+      margin: 0 auto;
+      transition: background .16s ease, color .16s ease;
+    }
+
+    .checkout-step-label {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .checkout-step.ativo .checkout-step-indicador,
+    .checkout-step.concluido .checkout-step-indicador {
       background: #ef4444;
+      color: white;
+    }
+
+    .checkout-step.ativo .checkout-step-label,
+    .checkout-step.concluido .checkout-step-label {
+      color: #111827;
     }
 
     .checkout-etapa {
@@ -317,12 +379,31 @@ function instalarEstilosCheckout() {
       outline: none;
       color: #111827;
       background: #ffffff;
+      transition: border-color .16s ease, box-shadow .16s ease;
     }
 
     .checkout-campo input:focus,
     .checkout-campo textarea:focus {
       border-color: #ef4444;
       box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.10);
+    }
+
+    .checkout-campo.erro input,
+    .checkout-campo.erro textarea {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+
+    .checkout-erro {
+      display: none;
+      color: #dc2626;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .checkout-campo.erro .checkout-erro {
+      display: block;
     }
 
     .checkout-campo-full {
@@ -412,6 +493,10 @@ function instalarEstilosCheckout() {
       display: grid;
       gap: 10px;
       margin-top: 18px;
+      position: sticky;
+      bottom: 0;
+      background: #f9fafb;
+      padding-top: 12px;
     }
 
     .checkout-total-linha {
@@ -434,12 +519,35 @@ function instalarEstilosCheckout() {
     }
 
     .checkout-footer {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 150px 1fr 230px;
+      align-items: center;
       gap: 12px;
       padding: 16px 24px;
       border-top: 1px solid #e5e7eb;
       background: #ffffff;
+    }
+
+    .checkout-footer-total {
+      display: none;
+      justify-self: center;
+      text-align: center;
+    }
+
+    .checkout-footer-total span {
+      display: block;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .checkout-footer-total strong {
+      display: block;
+      color: #ef4444;
+      font-size: 22px;
+      line-height: 1.1;
     }
 
     .checkout-btn {
@@ -460,6 +568,11 @@ function instalarEstilosCheckout() {
       background: #ef4444;
       color: white;
       min-width: 210px;
+    }
+
+    .checkout-btn-principal:disabled {
+      opacity: .65;
+      cursor: wait;
     }
 
     .checkout-confirmacao {
@@ -488,8 +601,8 @@ function instalarEstilosCheckout() {
     .checkout-alerta {
       border-radius: 16px;
       padding: 14px;
-      background: #fff7ed;
-      color: #9a3412;
+      background: #ecfdf5;
+      color: #166534;
       font-weight: 800;
       line-height: 1.35;
     }
@@ -521,8 +634,8 @@ function instalarEstilosCheckout() {
         padding: 20px 18px;
       }
 
-      .checkout-steps {
-        grid-template-columns: repeat(5, 1fr);
+      .checkout-resumo {
+        display: none;
       }
 
       .checkout-grid,
@@ -531,13 +644,55 @@ function instalarEstilosCheckout() {
       }
 
       .checkout-footer {
+        grid-template-columns: auto 1fr;
         position: sticky;
         bottom: 0;
+        padding: 12px;
+      }
+
+      .checkout-footer-total {
+        display: block;
       }
 
       .checkout-btn-principal {
         min-width: 0;
-        flex: 1;
+      }
+
+      #checkoutContinuar {
+        grid-column: 2;
+      }
+
+      #checkoutVoltar {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .checkout-footer-total {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        justify-self: center;
+        margin-bottom: 4px;
+      }
+
+      #checkoutVoltar,
+      #checkoutContinuar {
+        grid-row: 2;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .checkout-steps {
+        gap: 5px;
+      }
+
+      .checkout-step-indicador {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+      }
+
+      .checkout-step-label {
+        font-size: 10px;
       }
     }
 
@@ -594,9 +749,16 @@ function renderizarStepsCheckout() {
 
   if (!steps) return;
 
-  steps.innerHTML = [1, 2, 3, 4, 5].map((etapa) => {
-    const classe = etapa < checkoutEtapaAtual ? "concluido" : etapa === checkoutEtapaAtual ? "ativo" : "";
-    return `<div class="checkout-step ${classe}"></div>`;
+  steps.innerHTML = CHECKOUT_ETAPAS.map((etapa) => {
+    const classe = etapa.numero < checkoutEtapaAtual ? "concluido" : etapa.numero === checkoutEtapaAtual ? "ativo" : "";
+    const conteudo = etapa.numero < checkoutEtapaAtual ? "✓" : etapa.numero;
+
+    return `
+      <div class="checkout-step ${classe}">
+        <div class="checkout-step-indicador">${conteudo}</div>
+        <div class="checkout-step-label">${etapa.nome}</div>
+      </div>
+    `;
   }).join("");
 }
 
@@ -634,7 +796,7 @@ function renderizarEtapaPedido() {
   return `
     <div class="checkout-card">
       <h3>Revise seu pedido</h3>
-      <p>Confira os itens antes de continuar. Para alterar quantidades, volte ao carrinho.</p>
+      <p>Confira os itens antes de continuar. Para mudar quantidades ou remover itens, volte ao carrinho.</p>
     </div>
 
     <div class="checkout-card">
@@ -661,7 +823,7 @@ function renderizarEtapaRecebimento() {
   return `
     <div class="checkout-card">
       <h3>Como deseja receber?</h3>
-      <p>Escolha se o cliente vai receber em casa ou retirar no balcão.</p>
+      <p>Escolha se o pedido será entregue ou retirado no balcão.</p>
     </div>
 
     <div class="checkout-opcoes">
@@ -677,9 +839,29 @@ function renderizarEtapaRecebimento() {
         <input type="radio" name="tipoRecebimento" value="retirada" ${checkoutDados.tipoRecebimento === "retirada" ? "checked" : ""}>
         <div>
           <strong>Retirar no balcão</strong>
-          <span>O cliente busca o pedido no estabelecimento.</span>
+          <span>Buscar o pedido no estabelecimento.</span>
         </div>
       </label>
+    </div>
+  `;
+}
+
+function campoCheckout(id, label, type, value, placeholder, erro, extra = "") {
+  return `
+    <div class="checkout-campo ${extra}" data-campo-wrapper="${id}">
+      <label for="${id}">${label}</label>
+      <input id="${id}" type="${type}" value="${checkoutEscaparHTML(value)}" placeholder="${placeholder}">
+      <small class="checkout-erro">${erro}</small>
+    </div>
+  `;
+}
+
+function textareaCheckout(id, label, value, placeholder, extra = "") {
+  return `
+    <div class="checkout-campo ${extra}" data-campo-wrapper="${id}">
+      <label for="${id}">${label}</label>
+      <textarea id="${id}" placeholder="${placeholder}">${checkoutEscaparHTML(value)}</textarea>
+      <small class="checkout-erro"></small>
     </div>
   `;
 }
@@ -688,25 +870,14 @@ function renderizarEtapaEndereco() {
   if (checkoutDados.tipoRecebimento === "retirada") {
     return `
       <div class="checkout-card">
-        <h3>Retirada selecionada</h3>
-        <p>Como o pedido será retirado no balcão, não é necessário informar endereço.</p>
+        <h3>Dados para retirada</h3>
+        <p>Informe nome e WhatsApp para a loja identificar o pedido.</p>
       </div>
 
       <div class="checkout-grid">
-        <div class="checkout-campo">
-          <label>Nome</label>
-          <input id="checkoutNomeCliente" type="text" value="${checkoutEscaparHTML(checkoutDados.nomeCliente)}" placeholder="Nome do cliente">
-        </div>
-
-        <div class="checkout-campo">
-          <label>WhatsApp</label>
-          <input id="checkoutTelefoneCliente" type="tel" value="${checkoutEscaparHTML(checkoutDados.telefoneCliente)}" placeholder="(27) 99999-9999">
-        </div>
-
-        <div class="checkout-campo checkout-campo-full">
-          <label>Observação geral</label>
-          <textarea id="checkoutObservacaoPedido" placeholder="Ex: retirar às 20h">${checkoutEscaparHTML(checkoutDados.observacaoPedido)}</textarea>
-        </div>
+        ${campoCheckout("checkoutNomeCliente", "Nome", "text", checkoutDados.nomeCliente, "Nome do cliente", "Informe o nome do cliente.")}
+        ${campoCheckout("checkoutTelefoneCliente", "WhatsApp", "tel", checkoutDados.telefoneCliente, "(27) 99999-9999", "Informe um WhatsApp válido.")}
+        ${textareaCheckout("checkoutObservacaoPedido", "Observação geral", checkoutDados.observacaoPedido, "Ex: retirar às 20h", "checkout-campo-full")}
       </div>
     `;
   }
@@ -714,59 +885,20 @@ function renderizarEtapaEndereco() {
   return `
     <div class="checkout-card">
       <h3>Endereço de entrega</h3>
-      <p>Informe os dados para o restaurante preparar a entrega.</p>
+      <p>Informe os dados para a loja preparar a entrega.</p>
     </div>
 
     <div class="checkout-grid">
-      <div class="checkout-campo">
-        <label>Nome</label>
-        <input id="checkoutNomeCliente" type="text" value="${checkoutEscaparHTML(checkoutDados.nomeCliente)}" placeholder="Nome do cliente">
-      </div>
-
-      <div class="checkout-campo">
-        <label>WhatsApp</label>
-        <input id="checkoutTelefoneCliente" type="tel" value="${checkoutEscaparHTML(checkoutDados.telefoneCliente)}" placeholder="(27) 99999-9999">
-      </div>
-
-      <div class="checkout-campo">
-        <label>CEP</label>
-        <input id="checkoutCep" type="text" value="${checkoutEscaparHTML(checkoutDados.cep)}" placeholder="00000-000">
-      </div>
-
-      <div class="checkout-campo">
-        <label>Bairro</label>
-        <input id="checkoutBairro" type="text" value="${checkoutEscaparHTML(checkoutDados.bairro)}" placeholder="Bairro">
-      </div>
-
-      <div class="checkout-campo checkout-campo-full">
-        <label>Rua</label>
-        <input id="checkoutRua" type="text" value="${checkoutEscaparHTML(checkoutDados.rua)}" placeholder="Rua / Avenida">
-      </div>
-
-      <div class="checkout-campo">
-        <label>Número</label>
-        <input id="checkoutNumero" type="text" value="${checkoutEscaparHTML(checkoutDados.numero)}" placeholder="Número">
-      </div>
-
-      <div class="checkout-campo">
-        <label>Complemento</label>
-        <input id="checkoutComplemento" type="text" value="${checkoutEscaparHTML(checkoutDados.complemento)}" placeholder="Apto, bloco, casa...">
-      </div>
-
-      <div class="checkout-campo">
-        <label>Cidade</label>
-        <input id="checkoutCidade" type="text" value="${checkoutEscaparHTML(checkoutDados.cidade)}" placeholder="Cidade">
-      </div>
-
-      <div class="checkout-campo">
-        <label>Referência</label>
-        <input id="checkoutReferencia" type="text" value="${checkoutEscaparHTML(checkoutDados.referencia)}" placeholder="Ponto de referência">
-      </div>
-
-      <div class="checkout-campo checkout-campo-full">
-        <label>Observação geral</label>
-        <textarea id="checkoutObservacaoPedido" placeholder="Ex: interfone não funciona">${checkoutEscaparHTML(checkoutDados.observacaoPedido)}</textarea>
-      </div>
+      ${campoCheckout("checkoutNomeCliente", "Nome", "text", checkoutDados.nomeCliente, "Nome do cliente", "Informe o nome do cliente.")}
+      ${campoCheckout("checkoutTelefoneCliente", "WhatsApp", "tel", checkoutDados.telefoneCliente, "(27) 99999-9999", "Informe um WhatsApp válido.")}
+      ${campoCheckout("checkoutCep", "CEP", "text", checkoutDados.cep, "00000-000", "CEP inválido. Use 8 números.")}
+      ${campoCheckout("checkoutBairro", "Bairro", "text", checkoutDados.bairro, "Bairro", "Informe o bairro.")}
+      ${campoCheckout("checkoutRua", "Rua", "text", checkoutDados.rua, "Rua / Avenida", "Informe a rua.", "checkout-campo-full")}
+      ${campoCheckout("checkoutNumero", "Número", "text", checkoutDados.numero, "Número", "Informe o número.")}
+      ${campoCheckout("checkoutComplemento", "Complemento", "text", checkoutDados.complemento, "Apto, bloco, casa...", "")}
+      ${campoCheckout("checkoutCidade", "Cidade", "text", checkoutDados.cidade, "Cidade", "")}
+      ${campoCheckout("checkoutReferencia", "Referência", "text", checkoutDados.referencia, "Ponto de referência", "")}
+      ${textareaCheckout("checkoutObservacaoPedido", "Observação geral", checkoutDados.observacaoPedido, "Ex: interfone não funciona", "checkout-campo-full")}
     </div>
   `;
 }
@@ -786,9 +918,10 @@ function renderizarEtapaPagamento() {
     </div>
 
     <div id="checkoutTrocoBox" class="checkout-card" style="display: ${checkoutDados.pagamento === "dinheiro" ? "block" : "none"};">
-      <div class="checkout-campo">
-        <label>Troco para quanto?</label>
+      <div class="checkout-campo" data-campo-wrapper="checkoutTrocoPara">
+        <label for="checkoutTrocoPara">Troco para quanto?</label>
         <input id="checkoutTrocoPara" type="number" step="0.01" value="${checkoutEscaparHTML(checkoutDados.trocoPara)}" placeholder="Ex: 100,00">
+        <small class="checkout-erro">O valor do troco precisa ser maior que o total do pedido.</small>
       </div>
     </div>
   `;
@@ -859,7 +992,7 @@ function renderizarEtapaConfirmacao() {
     </div>
 
     <div class="checkout-alerta">
-      Ao confirmar, o pedido será enviado para o WhatsApp da loja.
+      Ao confirmar, o pedido será registrado no sistema e enviado para o WhatsApp da loja.
     </div>
   `;
 }
@@ -903,14 +1036,73 @@ function preencherEventosEtapa() {
     elemento.addEventListener("input", () => {
       checkoutDados[campo] = elemento.value;
       salvarDadosCheckout();
+      validarCampoVisivel(id, false);
       renderizarResumoCheckout();
     });
+
+    elemento.addEventListener("blur", () => {
+      validarCampoVisivel(id, true);
+    });
   });
+}
+
+function marcarErroCampo(id, temErro) {
+  const wrapper = document.querySelector(`[data-campo-wrapper="${id}"]`);
+
+  if (!wrapper) return;
+
+  wrapper.classList.toggle("erro", Boolean(temErro));
+}
+
+function validarCampoVisivel(id, mostrarErro) {
+  const elemento = document.getElementById(id);
+
+  if (!elemento) return true;
+
+  const valor = elemento.value.trim();
+  let invalido = false;
+
+  if (id === "checkoutNomeCliente") {
+    invalido = valor.length < 2;
+  }
+
+  if (id === "checkoutTelefoneCliente") {
+    invalido = !telefoneValido(valor);
+  }
+
+  if (id === "checkoutCep") {
+    invalido = !cepValido(valor);
+  }
+
+  if (checkoutDados.tipoRecebimento === "delivery") {
+    if (id === "checkoutRua") {
+      invalido = !valor;
+    }
+
+    if (id === "checkoutNumero") {
+      invalido = !valor;
+    }
+
+    if (id === "checkoutBairro") {
+      invalido = !valor;
+    }
+  }
+
+  if (id === "checkoutTrocoPara" && checkoutDados.pagamento === "dinheiro" && valor) {
+    invalido = Number(valor) <= calcularTotalCheckout();
+  }
+
+  if (mostrarErro || !invalido) {
+    marcarErroCampo(id, invalido);
+  }
+
+  return !invalido;
 }
 
 function renderizarResumoCheckout() {
   const itensContainer = document.getElementById("checkoutResumoItens");
   const totaisContainer = document.getElementById("checkoutTotais");
+  const totalFooter = document.getElementById("checkoutTotalFooter");
 
   if (!itensContainer || !totaisContainer) return;
 
@@ -949,6 +1141,10 @@ function renderizarResumoCheckout() {
       <strong>${checkoutMoeda(total)}</strong>
     </div>
   `;
+
+  if (totalFooter) {
+    totalFooter.innerText = checkoutMoeda(total);
+  }
 }
 
 function atualizarBotoesCheckout() {
@@ -990,43 +1186,40 @@ function salvarCamposVisiveis() {
 function validarEtapaAtual() {
   salvarCamposVisiveis();
 
-  if (checkoutEtapaAtual === 3) {
-    if (!checkoutDados.nomeCliente.trim()) {
-      alert("Informe o nome do cliente.");
-      return false;
-    }
+  let valido = true;
 
-    if (!checkoutDados.telefoneCliente.trim()) {
-      alert("Informe o WhatsApp do cliente.");
-      return false;
-    }
+  if (checkoutEtapaAtual === 3) {
+    ["checkoutNomeCliente", "checkoutTelefoneCliente"].forEach((id) => {
+      if (!validarCampoVisivel(id, true)) {
+        valido = false;
+      }
+    });
 
     if (checkoutDados.tipoRecebimento === "delivery") {
-      if (!checkoutDados.rua.trim()) {
-        alert("Informe a rua da entrega.");
-        return false;
-      }
-
-      if (!checkoutDados.numero.trim()) {
-        alert("Informe o número da entrega.");
-        return false;
-      }
-
-      if (!checkoutDados.bairro.trim()) {
-        alert("Informe o bairro da entrega.");
-        return false;
-      }
+      ["checkoutCep", "checkoutRua", "checkoutNumero", "checkoutBairro"].forEach((id) => {
+        if (!validarCampoVisivel(id, true)) {
+          valido = false;
+        }
+      });
     }
   }
 
   if (checkoutEtapaAtual === 4) {
     if (!checkoutDados.pagamento) {
+      valido = false;
       alert("Escolha a forma de pagamento.");
-      return false;
+    }
+
+    if (checkoutDados.pagamento === "dinheiro") {
+      const trocoInput = document.getElementById("checkoutTrocoPara");
+
+      if (trocoInput && trocoInput.value.trim() && !validarCampoVisivel("checkoutTrocoPara", true)) {
+        valido = false;
+      }
     }
   }
 
-  return true;
+  return valido;
 }
 
 function continuarCheckout() {
@@ -1037,12 +1230,7 @@ function continuarCheckout() {
     return;
   }
 
-  if (checkoutEtapaAtual === 2 && checkoutDados.tipoRecebimento === "retirada") {
-    checkoutEtapaAtual = 3;
-  } else {
-    checkoutEtapaAtual++;
-  }
-
+  checkoutEtapaAtual++;
   renderizarCheckout();
 }
 
@@ -1073,14 +1261,16 @@ function montarMensagemCheckout() {
     outro: "Combinar com a loja"
   }[checkoutDados.pagamento] || "Não informado";
 
-  let mensagem = `Olá! Quero fazer um pedido${loja.nome ? ` na ${loja.nome}` : ""}:\n\n`;
+  const separador = "-----------------------------";
 
-  mensagem += `*Cliente:* ${checkoutDados.nomeCliente}\n`;
-  mensagem += `*WhatsApp:* ${checkoutDados.telefoneCliente}\n`;
-  mensagem += `*Recebimento:* ${checkoutDados.tipoRecebimento === "delivery" ? "Delivery" : "Retirada no balcão"}\n\n`;
+  let mensagem = `🍽️ *NOVO PEDIDO${loja.nome ? ` - ${loja.nome}` : ""}*\n\n`;
+
+  mensagem += `👤 *Cliente:* ${checkoutDados.nomeCliente}\n`;
+  mensagem += `📞 *WhatsApp:* ${checkoutDados.telefoneCliente}\n`;
+  mensagem += `📦 *Tipo:* ${checkoutDados.tipoRecebimento === "delivery" ? "Delivery" : "Retirada no balcão"}\n\n`;
 
   if (checkoutDados.tipoRecebimento === "delivery") {
-    mensagem += `*Endereço:*\n`;
+    mensagem += `📍 *Endereço de entrega*\n`;
     mensagem += `${checkoutDados.rua}, ${checkoutDados.numero}\n`;
     mensagem += `${checkoutDados.bairro}${checkoutDados.cidade ? ` - ${checkoutDados.cidade}` : ""}\n`;
 
@@ -1092,14 +1282,18 @@ function montarMensagemCheckout() {
       mensagem += `Referência: ${checkoutDados.referencia}\n`;
     }
 
+    if (checkoutDados.cep) {
+      mensagem += `CEP: ${checkoutDados.cep}\n`;
+    }
+
     mensagem += "\n";
   }
 
-  mensagem += `*Itens:*\n`;
+  mensagem += `${separador}\n`;
+  mensagem += `🧾 *ITENS DO PEDIDO*\n`;
 
   itens.forEach((item, index) => {
-    mensagem += `\n*${index + 1}. ${item.nome}*\n`;
-    mensagem += `Quantidade: ${item.quantidade}\n`;
+    mensagem += `\n*${index + 1}. ${item.quantidade}x ${item.nome}*\n`;
     mensagem += `Valor: ${checkoutMoeda(calcularSubtotalItemCheckout(item))}\n`;
 
     if ((item.adicionais || []).length) {
@@ -1116,13 +1310,14 @@ function montarMensagemCheckout() {
   });
 
   if (checkoutDados.observacaoPedido) {
-    mensagem += `\n*Observação geral:* ${checkoutDados.observacaoPedido}\n`;
+    mensagem += `\n📝 *Observação geral:* ${checkoutDados.observacaoPedido}\n`;
   }
 
-  mensagem += `\n*Pagamento:* ${pagamentoTexto}\n`;
+  mensagem += `\n${separador}\n`;
+  mensagem += `💳 *Pagamento:* ${pagamentoTexto}\n`;
   mensagem += `Subtotal: ${checkoutMoeda(subtotal)}\n`;
   mensagem += `Entrega: ${checkoutDados.tipoRecebimento === "retirada" ? "Retirada" : entrega > 0 ? checkoutMoeda(entrega) : "A combinar"}\n`;
-  mensagem += `*Total: ${checkoutMoeda(total)}*`;
+  mensagem += `✅ *TOTAL: ${checkoutMoeda(total)}*`;
 
   return mensagem;
 }
@@ -1175,6 +1370,13 @@ async function confirmarPedidoCheckout() {
     return;
   }
 
+  const botao = document.getElementById("checkoutContinuar");
+
+  if (botao) {
+    botao.disabled = true;
+    botao.innerText = "Enviando...";
+  }
+
   await tentarSalvarPedidoNoBanco();
 
   const numeroFinal = `55${numeroWhatsApp.replace(/^55/, "")}`;
@@ -1188,6 +1390,11 @@ async function confirmarPedidoCheckout() {
   }
 
   fecharCheckout();
+
+  if (botao) {
+    botao.disabled = false;
+    botao.innerText = "Confirmar pedido";
+  }
 }
 
 window.DeliveryOSCheckout = {
