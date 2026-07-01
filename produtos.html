@@ -12,22 +12,32 @@
 
   <aside id="sidebar" class="sidebar"></aside>
 
-  <main class="content">
+  <main class="content page-stack">
 
     <header id="topbar" class="topbar"></header>
 
-    <section class="panel">
-      <div class="panel-header">
-        <div>
-          <h2>Lista de produtos</h2>
-          <p class="panel-subtitle">Gerencie todos os produtos do seu cardápio.</p>
-        </div>
-
-        <button id="btnNovoProduto">+ Novo Produto</button>
+    <section class="page-hero">
+      <div>
+        <span class="page-hero-kicker">🍔 Cardápio</span>
+        <h2>Produtos da loja</h2>
+        <p>Cadastre fotos, preços, categorias e adicionais para montar um cardápio mais bonito e fácil de vender.</p>
       </div>
 
-      <div class="toolbar">
-        <input type="text" id="buscarProduto" placeholder="Buscar produto...">
+      <div class="page-hero-actions">
+        <button id="btnNovoProduto" type="button" class="btn-admin-secondary">+ Novo Produto</button>
+      </div>
+    </section>
+
+    <section class="admin-list-panel">
+      <div class="admin-list-head">
+        <div>
+          <h2>Lista de produtos</h2>
+          <p>Gerencie todos os produtos disponíveis no cardápio público.</p>
+        </div>
+      </div>
+
+      <div class="admin-toolbar">
+        <input type="text" id="buscarProduto" placeholder="Buscar produto pelo nome...">
       </div>
 
       <div id="listaProdutos" class="lista-produtos"></div>
