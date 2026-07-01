@@ -8,7 +8,38 @@ const carrinhoTotal = document.getElementById("carrinhoTotal");
 const abrirCarrinho = document.getElementById("abrirCarrinho");
 const finalizarPedido = document.getElementById("finalizarPedido");
 
-const CHAVE_CARRINHO = "deliveryos_carrinho";
+const CHAVE_CARRINHO_PADRAO = "deliveryos_carrinho";
+
+function obterSlugLojaCarrinho() {
+  const parametros = new URLSearchParams(window.location.search);
+  const slugUrl = parametros.get("loja") || parametros.get("slug");
+
+  if (slugUrl) {
+    return String(slugUrl).trim().toLowerCase();
+  }
+
+  const loja = window.DeliveryOSLojaAtual || {};
+
+  if (loja.slug) {
+    return String(loja.slug).trim().toLowerCase();
+  }
+
+  if (loja.id) {
+    return String(loja.id).trim().toLowerCase();
+  }
+
+  return "";
+}
+
+function obterChaveCarrinho() {
+  const slug = obterSlugLojaCarrinho();
+
+  if (!slug) {
+    return CHAVE_CARRINHO_PADRAO;
+  }
+
+  return `${CHAVE_CARRINHO_PADRAO}_${slug}`;
+}
 
 let carrinho = carregarCarrinho();
 let ultimaQuantidadeCarrinho = calcularQuantidadeCarrinho();
@@ -32,7 +63,7 @@ function escaparHTML(texto) {
 
 function carregarCarrinho() {
   try {
-    const dados = JSON.parse(localStorage.getItem(CHAVE_CARRINHO)) || [];
+    const dados = JSON.parse(localStorage.getItem(obterChaveCarrinho())) || [];
 
     if (!Array.isArray(dados)) {
       return [];
@@ -46,7 +77,7 @@ function carregarCarrinho() {
 }
 
 function salvarCarrinho() {
-  localStorage.setItem(CHAVE_CARRINHO, JSON.stringify(carrinho));
+  localStorage.setItem(obterChaveCarrinho(), JSON.stringify(carrinho));
 }
 
 function calcularSubtotalItem(item) {
