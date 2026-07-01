@@ -12,36 +12,35 @@
 
   <aside id="sidebar" class="sidebar"></aside>
 
-  <main class="content">
+  <main class="content page-stack">
 
-    <header class="topbar">
+    <header id="topbar" class="topbar"></header>
+
+    <section class="page-hero">
       <div>
-        <h1>Grupos de Adicionais</h1>
-        <p>Crie grupos como “Extras”, “Molhos” ou “Bordas”.</p>
+        <span class="page-hero-kicker">📋 Adicionais</span>
+        <h2>Grupos de adicionais</h2>
+        <p>Crie grupos como extras, molhos, bordas e complementos com limite mínimo e máximo de escolhas.</p>
       </div>
 
-      <div class="topbar-actions">
-        <button class="notification">🔔</button>
-        <button id="sair">Sair</button>
+      <div class="page-hero-actions">
+        <button id="btnNovoGrupo" type="button" class="btn-admin-secondary">+ Novo grupo</button>
       </div>
-    </header>
+    </section>
 
-    <section class="panel">
-      <div class="panel-header">
+    <section class="admin-list-panel">
+      <div class="admin-list-head">
         <div>
           <h2>Lista de grupos</h2>
-          <p class="panel-subtitle">Configure mínimo e máximo de escolhas.</p>
+          <p>Configure como os adicionais serão exibidos dentro do produto.</p>
         </div>
-
-        <button id="btnNovoGrupo">+ Novo grupo</button>
       </div>
 
-      <form id="formGrupo" class="form-modal oculto">
+      <form id="formGrupo" class="admin-inline-form oculto">
         <input type="text" id="grupoNome" placeholder="Nome do grupo" required>
         <textarea id="grupoDescricao" placeholder="Descrição"></textarea>
         <input type="number" id="grupoMinimo" placeholder="Mínimo de escolhas" min="0" value="0">
         <input type="number" id="grupoMaximo" placeholder="Máximo de escolhas" min="0" value="0">
-
         <button type="submit">Salvar grupo</button>
       </form>
 
@@ -57,8 +56,10 @@
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/admin.js"></script>
 <script src="assets/js/sidebar.js"></script>
+<script src="assets/js/topbar.js"></script>
 <script>
   carregarSidebar("grupos");
+  carregarTopbar("Grupos", "Crie grupos como Extras, Molhos ou Bordas.");
 </script>
 <script src="assets/js/grupos-adicionais-admin.js"></script>
 
