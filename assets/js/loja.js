@@ -92,29 +92,95 @@ function mostrarSkeleton() {
   `;
 }
 
-async function carregarLoja() {
-  mostrarSkeleton();
+function obterSlugLojaDaUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const slugQuery = params.get("loja") || params.get("slug");
 
+  if (slugQuery && slugQuery.trim()) {
+    return slugQuery.trim().toLowerCase();
+  }
+
+  const partesCaminho = window.location.pathname
+    .split("/")
+    .map((parte) => parte.trim())
+    .filter(Boolean);
+
+  const ultimaParte = partesCaminho[partesCaminho.length - 1] || "";
+
+  if (ultimaParte && !ultimaParte.includes(".") && ultimaParte !== "loja") {
+    return ultimaParte.toLowerCase();
+  }
+
+  return "";
+}
+
+function mostrarErroCarregarLoja(titulo = "Não foi possível carregar o cardápio.", mensagem = "Tente atualizar a página em alguns segundos.") {
+  if (nomeLoja) {
+    nomeLoja.innerText = "Erro ao carregar loja";
+  }
+
+  if (produtosLoja) {
+    produtosLoja.innerHTML = `
+      <div class="estado-vazio">
+        <h3>${titulo}</h3>
+        <p>${mensagem}</p>
+      </div>
+    `;
+  }
+}
+
+async function buscarLojaPorSlug(slug) {
+  const { data, error } = await supabaseClient
+    .from("lojas")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  return { data, error };
+}
+
+async function buscarPrimeiraLojaDisponivel() {
   const { data, error } = await supabaseClient
     .from("lojas")
     .select("*")
     .limit(1)
     .maybeSingle();
 
+  return { data, error };
+}
+
+async function carregarLoja() {
+  mostrarSkeleton();
+
+  const slug = obterSlugLojaDaUrl();
+  let resultado = null;
+
+  if (slug) {
+    resultado = await buscarLojaPorSlug(slug);
+  } else {
+    resultado = await buscarPrimeiraLojaDisponivel();
+  }
+
+  const { data, error } = resultado || {};
+
   if (error || !data) {
     console.error(error);
-    nomeLoja.innerText = "Erro ao carregar loja";
-    produtosLoja.innerHTML = `
-      <div class="estado-vazio">
-        <h3>Não foi possível carregar o cardápio.</h3>
-        <p>Tente atualizar a página em alguns segundos.</p>
-      </div>
-    `;
+
+    if (slug) {
+      mostrarErroCarregarLoja(
+        "Loja não encontrada.",
+        "Confira se o link do cardápio está correto."
+      );
+      return;
+    }
+
+    mostrarErroCarregarLoja();
     return;
   }
 
   lojaAtual = data;
   window.DeliveryOSLojaAtual = data;
+  window.DeliveryOSLojaSlug = data.slug || slug || "";
 
   aplicarDadosDaLoja(data);
 
