@@ -1,3 +1,9 @@
+// ============================================================
+// DELIVERYOS UI - NOTIFICAÇÕES GLOBAIS DE PEDIDOS
+// Funciona nas páginas do painel, exceto pedidos.html.
+// Não cria botão de ativar som fora da tela de Pedidos.
+// ============================================================
+
 (function () {
   if (window.DeliveryOSPedidosNotifier) return;
 
@@ -6,6 +12,7 @@
 
   const DELIVERYOS_SOM_PEDIDOS_KEY = "deliveryos_som_pedidos_ativo";
   const DELIVERYOS_AUDIO_DESBLOQUEADO_KEY = "deliveryos_audio_pedidos_desbloqueado";
+  const DELIVERYOS_PEDIDO_RESOLVIDO_KEY = "deliveryos_pedido_notificacao_resolvida";
 
   let canalPedidosGlobal = null;
   let lojaIdAtual = null;
@@ -14,6 +21,7 @@
   let intervaloTitulo = null;
   let tituloOriginal = document.title;
   let ultimoPedidoNotificado = null;
+  let broadcastChannel = null;
 
   function somGlobalAtivo() {
     try {
@@ -23,11 +31,11 @@
     }
   }
 
-  function salvarSomGlobalAtivo(ativo) {
+  function audioGlobalDesbloqueado() {
     try {
-      localStorage.setItem(DELIVERYOS_SOM_PEDIDOS_KEY, ativo ? "sim" : "nao");
+      return localStorage.getItem(DELIVERYOS_AUDIO_DESBLOQUEADO_KEY) === "sim";
     } catch (error) {
-      console.warn("DeliveryOS: não foi possível salvar a preferência de som.", error);
+      return false;
     }
   }
 
@@ -64,46 +72,7 @@
     return pedido?.total ?? pedido?.valor_total ?? pedido?.total_pedido ?? 0;
   }
 
-  function atualizarBotaoSomGlobal() {
-    const btn = document.getElementById("deliveryosBtnSomGlobal");
-    if (!btn) return;
-
-    if (somGlobalAtivo()) {
-      btn.innerText = audioDesbloqueado ? "🔔 Som ativado" : "🔔 Ativar som nesta tela";
-      btn.classList.add("som-ativo");
-      btn.title = audioDesbloqueado
-        ? "O som de novos pedidos está ativo."
-        : "Clique uma vez nesta tela para liberar o som do navegador.";
-    } else {
-      btn.innerText = "🔕 Ativar som";
-      btn.classList.remove("som-ativo");
-      btn.title = "Ativar som de novos pedidos neste navegador.";
-    }
-  }
-
-  function criarBotaoSomGlobal() {
-    if (estaNaPaginaPedidos) return;
-    if (document.getElementById("deliveryosBtnSomGlobal")) return;
-
-    const btn = document.createElement("button");
-    btn.id = "deliveryosBtnSomGlobal";
-    btn.type = "button";
-    btn.className = "deliveryos-som-global-btn";
-    btn.addEventListener("click", () => {
-      salvarSomGlobalAtivo(true);
-      desbloquearAudio(true);
-      atualizarBotaoSomGlobal();
-
-      if (typeof window.showToast === "function") {
-        window.showToast("Som de novos pedidos ativado nesta tela.", "success");
-      }
-    });
-
-    document.body.appendChild(btn);
-    atualizarBotaoSomGlobal();
-  }
-
-  function desbloquearAudio(teste = false) {
+  function desbloquearAudio() {
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return false;
@@ -120,20 +89,17 @@
 
       audioDesbloqueado = true;
       salvarAudioDesbloqueado();
-      atualizarBotaoSomGlobal();
-
-      if (teste) tocarSomNovoPedido(true);
       return true;
     } catch (error) {
       audioDesbloqueado = false;
-      atualizarBotaoSomGlobal();
       return false;
     }
   }
 
-  function tocarSomNovoPedido(teste = false) {
-    if (!teste && !somGlobalAtivo()) return;
-    if (!teste && !audioDesbloqueado) return;
+  function tocarSomNovoPedido() {
+    if (!somGlobalAtivo()) return;
+    if (!audioDesbloqueado) return;
+    if (document.visibilityState === "hidden") return;
 
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -172,9 +138,9 @@
     pararSomContinuo();
 
     if (!somGlobalAtivo()) return;
+    if (document.visibilityState === "hidden") return;
 
     if (!audioDesbloqueado) {
-      criarAvisoLiberarSom();
       return;
     }
 
@@ -225,55 +191,35 @@
         </div>
         <div class="deliveryos-pedido-global-actions">
           <button type="button" id="deliveryosBtnVerPedidoGlobal">Ver pedidos</button>
-          <button type="button" id="deliveryosBtnLiberarSomGlobal">Ativar som</button>
           <button type="button" id="deliveryosBtnSilenciarPedidoGlobal" aria-label="Silenciar aviso">Silenciar</button>
         </div>
       `;
       document.body.appendChild(alerta);
 
       const btnVerPedidos = alerta.querySelector("#deliveryosBtnVerPedidoGlobal");
-      const btnLiberarSom = alerta.querySelector("#deliveryosBtnLiberarSomGlobal");
       const btnSilenciar = alerta.querySelector("#deliveryosBtnSilenciarPedidoGlobal");
 
       btnVerPedidos?.addEventListener("click", () => {
-        pararNotificacaoGlobal();
+        pararNotificacaoGlobal(true);
         window.location.href = "pedidos.html";
       });
 
-      btnLiberarSom?.addEventListener("click", () => {
-        salvarSomGlobalAtivo(true);
-        desbloquearAudio(true);
-        iniciarSomContinuo();
-        atualizarBotaoSomGlobal();
-      });
-
       btnSilenciar?.addEventListener("click", () => {
-        pararNotificacaoGlobal();
+        pararNotificacaoGlobal(true);
       });
     }
 
     return alerta;
   }
 
-  function criarAvisoLiberarSom() {
-    const alerta = criarAlertaVisual();
-    const btnLiberarSom = alerta.querySelector("#deliveryosBtnLiberarSomGlobal");
-    if (btnLiberarSom) btnLiberarSom.style.display = "inline-flex";
-  }
-
   function mostrarAlertaVisual(pedido) {
     const alerta = criarAlertaVisual();
     const texto = alerta.querySelector("#deliveryosPedidoGlobalTexto");
-    const btnLiberarSom = alerta.querySelector("#deliveryosBtnLiberarSomGlobal");
     const cliente = obterNomeCliente(pedido);
     const total = obterTotalPedido(pedido);
 
     if (texto) {
       texto.textContent = `${cliente} • ${formatarMoeda(total)} • clique em Ver pedidos para aceitar.`;
-    }
-
-    if (btnLiberarSom) {
-      btnLiberarSom.style.display = somGlobalAtivo() && !audioDesbloqueado ? "inline-flex" : "none";
     }
 
     alerta.classList.remove("oculto");
@@ -284,10 +230,36 @@
     if (alerta) alerta.classList.add("oculto");
   }
 
-  function pararNotificacaoGlobal() {
+  function publicarPedidoResolvido() {
+    const payload = JSON.stringify({
+      tipo: "pedido_resolvido",
+      origem: paginaAtual || "painel",
+      timestamp: Date.now()
+    });
+
+    try {
+      localStorage.setItem(DELIVERYOS_PEDIDO_RESOLVIDO_KEY, payload);
+    } catch (error) {
+      console.warn("DeliveryOS: não foi possível publicar evento de pedido resolvido.", error);
+    }
+
+    try {
+      if (broadcastChannel) {
+        broadcastChannel.postMessage(JSON.parse(payload));
+      }
+    } catch (error) {
+      console.warn("DeliveryOS: BroadcastChannel indisponível.", error);
+    }
+  }
+
+  function pararNotificacaoGlobal(publicar = false) {
     pararSomContinuo();
     pararPiscarTitulo();
     ocultarAlertaVisual();
+
+    if (publicar) {
+      publicarPedidoResolvido();
+    }
   }
 
   function mostrarToastPedido(pedido) {
@@ -388,12 +360,27 @@
     Notification.requestPermission().catch(() => {});
   }
 
+  function configurarBroadcast() {
+    try {
+      broadcastChannel = new BroadcastChannel("deliveryos_pedidos");
+      broadcastChannel.onmessage = (event) => {
+        if (event?.data?.tipo === "pedido_resolvido") {
+          pararNotificacaoGlobal(false);
+        }
+      };
+    } catch (error) {
+      broadcastChannel = null;
+    }
+  }
+
   function configurarEventosGlobais() {
-    ["pointerdown", "keydown", "touchstart"].forEach((evento) => {
+    audioDesbloqueado = audioGlobalDesbloqueado();
+
+    ["pointerdown", "keydown", "touchstart", "click"].forEach((evento) => {
       window.addEventListener(
         evento,
         () => {
-          if (somGlobalAtivo()) desbloquearAudio(false);
+          if (somGlobalAtivo()) desbloquearAudio();
           pedirPermissaoNotificacaoDepoisDeInteracao();
         },
         { passive: true }
@@ -405,13 +392,20 @@
     });
 
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && !intervaloSom) {
+      if (document.visibilityState === "hidden") {
+        pararSomContinuo();
+        return;
+      }
+
+      if (!intervaloSom) {
         pararPiscarTitulo();
       }
     });
 
     window.addEventListener("storage", (event) => {
-      if (event.key === DELIVERYOS_SOM_PEDIDOS_KEY) atualizarBotaoSomGlobal();
+      if (event.key === DELIVERYOS_PEDIDO_RESOLVIDO_KEY) {
+        pararNotificacaoGlobal(false);
+      }
     });
   }
 
@@ -419,20 +413,28 @@
     iniciar: iniciarRealtimeGlobal,
     parar: pararNotificacaoGlobal,
     desbloquearAudio,
+    publicarPedidoResolvido,
     ativarSom: () => {
-      salvarSomGlobalAtivo(true);
-      desbloquearAudio(true);
+      try {
+        localStorage.setItem(DELIVERYOS_SOM_PEDIDOS_KEY, "sim");
+      } catch (error) {
+        console.warn("DeliveryOS: não foi possível ativar o som.", error);
+      }
+      desbloquearAudio();
     },
     desativarSom: () => {
-      salvarSomGlobalAtivo(false);
-      pararNotificacaoGlobal();
-      atualizarBotaoSomGlobal();
+      try {
+        localStorage.setItem(DELIVERYOS_SOM_PEDIDOS_KEY, "nao");
+      } catch (error) {
+        console.warn("DeliveryOS: não foi possível desativar o som.", error);
+      }
+      pararNotificacaoGlobal(true);
     }
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    configurarBroadcast();
     configurarEventosGlobais();
-    criarBotaoSomGlobal();
     iniciarRealtimeGlobal();
   });
 })();
