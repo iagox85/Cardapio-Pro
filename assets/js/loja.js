@@ -24,6 +24,14 @@ const instagramTopo = document.getElementById("instagramTopo");
 const whatsappTopo = document.getElementById("whatsappTopo");
 const instagramRodape = document.getElementById("instagramRodape");
 const whatsappRodape = document.getElementById("whatsappRodape");
+const abrirInfoLoja = document.getElementById("abrirInfoLoja");
+const fecharInfoLoja = document.getElementById("fecharInfoLoja");
+const modalInfoLoja = document.getElementById("modalInfoLoja");
+const enderecoInfoLoja = document.getElementById("enderecoInfoLoja");
+const pedidoMinimoInfoLoja = document.getElementById("pedidoMinimoInfoLoja");
+const taxaEntregaInfoLoja = document.getElementById("taxaEntregaInfoLoja");
+const instagramInfoLoja = document.getElementById("instagramInfoLoja");
+const whatsappInfoLoja = document.getElementById("whatsappInfoLoja");
 
 const modalProduto = document.getElementById("modalProduto");
 const fecharModalProduto = document.getElementById("fecharModalProduto");
@@ -108,6 +116,13 @@ function obterCampoLoja(loja, campos, fallback = "") {
 
 function normalizarTelefone(valor) {
   return String(valor || "").replace(/\D/g, "");
+}
+
+function removerEstadoDoEndereco(texto) {
+  return String(texto || "")
+    .replace(/\s*[-•,]\s*(Espírito Santo|Espirito Santo|ES|Bahia|BA|Rio de Janeiro|RJ|São Paulo|Sao Paulo|SP|Minas Gerais|MG)\s*$/i, "")
+    .replace(/\s*[-•,]\s*[A-Z]{2}\s*$/i, "")
+    .trim();
 }
 
 function montarEnderecoLoja(loja) {
@@ -331,6 +346,16 @@ function aplicarDadosDaLoja(loja) {
       : "Entrega a combinar";
   }
 
+  if (pedidoMinimoInfoLoja) {
+    pedidoMinimoInfoLoja.innerText = `🧾 Pedido mínimo: ${formatarMoedaLoja(pedidoMinimo)}`;
+  }
+
+  if (taxaEntregaInfoLoja) {
+    taxaEntregaInfoLoja.innerText = Number(taxaEntrega) > 0
+      ? `🛵 Entrega: ${formatarMoedaLoja(taxaEntrega)}`
+      : "🛵 Entrega a combinar";
+  }
+
   if (statusLoja) {
     statusLoja.innerText = aberta ? "Aberta agora" : "Fechada";
     statusLoja.classList.toggle("aberto", aberta);
@@ -346,10 +371,11 @@ function aplicarDadosDaLoja(loja) {
   }
 
   if (lojaBanner && banner) {
-    lojaBanner.style.backgroundImage = `linear-gradient(115deg, rgba(6, 10, 20, 0.92), rgba(239, 68, 68, 0.55)), url("${banner}")`;
+    lojaBanner.style.backgroundImage = `url("${banner}")`;
   }
 
   if (enderecoLojaTopo) enderecoLojaTopo.innerText = `📍 ${endereco}`;
+  if (enderecoInfoLoja) enderecoInfoLoja.innerText = `📍 ${endereco}`;
   if (telefoneLojaTopo) telefoneLojaTopo.innerText = `☎ ${telefone}`;
   if (horarioLojaTopo) horarioLojaTopo.innerText = `🕒 ${horario}`;
 
@@ -362,8 +388,10 @@ function aplicarDadosDaLoja(loja) {
 
   atualizarLinkSocial(instagramTopo, instagram);
   atualizarLinkSocial(instagramRodape, instagram);
+  atualizarLinkSocial(instagramInfoLoja, instagram);
   atualizarLinkSocial(whatsappTopo, whatsappLink);
   atualizarLinkSocial(whatsappRodape, whatsappLink);
+  atualizarLinkSocial(whatsappInfoLoja, whatsappLink);
   renderizarPagamentosLoja(loja);
 }
 
@@ -818,3 +846,27 @@ if (buscarProdutoLoja) {
 }
 
 carregarLoja();
+
+
+if (abrirInfoLoja && modalInfoLoja) {
+  abrirInfoLoja.addEventListener("click", () => {
+    modalInfoLoja.classList.remove("oculto");
+    document.body.classList.add("modal-aberto");
+  });
+}
+
+if (fecharInfoLoja && modalInfoLoja) {
+  fecharInfoLoja.addEventListener("click", () => {
+    modalInfoLoja.classList.add("oculto");
+    document.body.classList.remove("modal-aberto");
+  });
+}
+
+if (modalInfoLoja) {
+  modalInfoLoja.addEventListener("click", (evento) => {
+    if (evento.target === modalInfoLoja) {
+      modalInfoLoja.classList.add("oculto");
+      document.body.classList.remove("modal-aberto");
+    }
+  });
+}
