@@ -1,1 +1,786 @@
-// Pedidos
+// ============================================================
+// PEDIDOS ADMIN - DELIVERYOS
+// Pedidos em tempo real com Supabase Realtime
+// ============================================================
+
+const listaPedidos = document.getElementById("listaPedidos");
+const totalPedidosNovos = document.getElementById("totalPedidosNovos");
+const totalPedidosPreparo = document.getElementById("totalPedidosPreparo");
+const totalPedidosFinalizados = document.getElementById("totalPedidosFinalizados");
+const totalFaturamentoPedidos = document.getElementById("totalFaturamentoPedidos");
+const btnAtualizarPedidos = document.getElementById("btnAtualizarPedidos");
+const btnSomPedidos = document.getElementById("btnSomPedidos");
+const alertaPedidoNovo = document.getElementById("alertaPedidoNovo");
+
+let pedidosCache = [];
+let filtroStatusAtual = "todos";
+let somPedidosAtivo = true;
+let canalPedidos = null;
+let lojaAtualPedidos = null;
+
+const STATUS_PEDIDOS = {
+  novo: {
+    label: "Novo",
+    classe: "status-novo",
+    proximo: "aceito",
+    acao: "Aceitar"
+  },
+  aceito: {
+    label: "Aceito",
+    classe: "status-aceito",
+    proximo: "preparando",
+    acao: "Preparar"
+  },
+  preparando: {
+    label: "Preparando",
+    classe: "status-preparando",
+    proximo: "pronto",
+    acao: "Pronto"
+  },
+  pronto: {
+    label: "Pronto",
+    classe: "status-pronto",
+    proximo: "saiu_entrega",
+    acao: "Saiu para entrega"
+  },
+  saiu_entrega: {
+    label: "Saiu para entrega",
+    classe: "status-entrega",
+    proximo: "finalizado",
+    acao: "Finalizar"
+  },
+  finalizado: {
+    label: "Finalizado",
+    classe: "status-finalizado",
+    proximo: null,
+    acao: null
+  },
+  cancelado: {
+    label: "Cancelado",
+    classe: "status-cancelado",
+    proximo: null,
+    acao: null
+  }
+};
+
+function formatarMoedaPedidos(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
+}
+
+function formatarDataPedido(data) {
+  if (!data) return "";
+
+  return new Date(data).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function escaparHTMLPedido(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function normalizarStatus(status) {
+  return status || "novo";
+}
+
+async function carregarLojaDoUsuarioPedidos() {
+  const { data, error } = await supabaseClient
+    .from("lojas")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erro ao carregar loja:", error);
+    return null;
+  }
+
+  lojaAtualPedidos = data;
+  return data;
+}
+
+async function carregarPedidos() {
+  if (!listaPedidos) return;
+
+  listaPedidos.innerHTML = "<p>Carregando pedidos...</p>";
+
+  if (!lojaAtualPedidos) {
+    await carregarLojaDoUsuarioPedidos();
+  }
+
+  let query = supabaseClient
+    .from("pedidos")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if (lojaAtualPedidos?.id) {
+    query = query.eq("loja_id", lojaAtualPedidos.id);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Erro ao carregar pedidos:", error);
+    listaPedidos.innerHTML = `
+      <div class="pedido-estado-vazio">
+        <h3>Erro ao carregar pedidos</h3>
+        <p>Verifique se o SQL de pedidos foi rodado no Supabase.</p>
+      </div>
+    `;
+    return;
+  }
+
+  pedidosCache = data || [];
+  renderizarPedidos();
+  atualizarResumoPedidos();
+}
+
+function filtrarPedidos() {
+  if (filtroStatusAtual === "todos") {
+    return pedidosCache;
+  }
+
+  return pedidosCache.filter((pedido) => {
+    return normalizarStatus(pedido.status) === filtroStatusAtual;
+  });
+}
+
+function renderizarPedidos() {
+  const pedidos = filtrarPedidos();
+
+  if (!pedidos.length) {
+    listaPedidos.innerHTML = `
+      <div class="pedido-estado-vazio">
+        <h3>Nenhum pedido encontrado</h3>
+        <p>Quando um cliente finalizar o checkout, o pedido aparecerá aqui automaticamente.</p>
+      </div>
+    `;
+    return;
+  }
+
+  listaPedidos.innerHTML = pedidos.map((pedido) => criarCardPedido(pedido)).join("");
+}
+
+function criarCardPedido(pedido) {
+  const status = normalizarStatus(pedido.status);
+  const statusInfo = STATUS_PEDIDOS[status] || STATUS_PEDIDOS.novo;
+  const itens = Array.isArray(pedido.itens) ? pedido.itens : [];
+  const endereco = pedido.endereco || {};
+  const numeroPedido = pedido.numero_pedido ? `#${String(pedido.numero_pedido).padStart(4, "0")}` : `#${pedido.id.slice(0, 6)}`;
+  const tipoRecebimento = pedido.tipo_recebimento === "retirada" ? "Retirada" : "Delivery";
+
+  const itensHTML = itens.map((item) => {
+    const adicionais = (item.adicionais || []).map((adicional) => {
+      return `<small>+ ${escaparHTMLPedido(adicional.nome)} — ${formatarMoedaPedidos(adicional.preco)}</small>`;
+    }).join("");
+
+    const observacao = item.observacao
+      ? `<small class="pedido-observacao">Obs: ${escaparHTMLPedido(item.observacao)}</small>`
+      : "";
+
+    return `
+      <div class="pedido-item">
+        <div>
+          <strong>${Number(item.quantidade || 1)}x ${escaparHTMLPedido(item.nome)}</strong>
+          ${adicionais}
+          ${observacao}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const enderecoHTML = pedido.tipo_recebimento === "retirada"
+    ? `<p><strong>Recebimento:</strong> Retirada no balcão</p>`
+    : `
+      <p><strong>Endereço:</strong> ${escaparHTMLPedido(endereco.rua)}, ${escaparHTMLPedido(endereco.numero)}</p>
+      <p><strong>Bairro:</strong> ${escaparHTMLPedido(endereco.bairro || "")}</p>
+      ${endereco.complemento ? `<p><strong>Complemento:</strong> ${escaparHTMLPedido(endereco.complemento)}</p>` : ""}
+      ${endereco.referencia ? `<p><strong>Referência:</strong> ${escaparHTMLPedido(endereco.referencia)}</p>` : ""}
+    `;
+
+  const acaoHTML = statusInfo.proximo
+    ? `<button class="btn-status-pedido" onclick="alterarStatusPedido('${pedido.id}', '${statusInfo.proximo}')">${statusInfo.acao}</button>`
+    : "";
+
+  const cancelarHTML = status !== "cancelado" && status !== "finalizado"
+    ? `<button class="btn-cancelar-pedido" onclick="alterarStatusPedido('${pedido.id}', 'cancelado')">Cancelar</button>`
+    : "";
+
+  return `
+    <article class="pedido-card ${status === "novo" ? "pedido-novo-destaque" : ""}">
+      <div class="pedido-card-topo">
+        <div>
+          <span class="pedido-numero">${numeroPedido}</span>
+          <h3>${escaparHTMLPedido(pedido.cliente_nome || "Cliente não informado")}</h3>
+          <p>${formatarDataPedido(pedido.created_at)} • ${tipoRecebimento}</p>
+        </div>
+
+        <span class="pedido-status ${statusInfo.classe}">
+          ${statusInfo.label}
+        </span>
+      </div>
+
+      <div class="pedido-card-grid">
+        <div class="pedido-bloco">
+          <h4>Cliente</h4>
+          <p><strong>WhatsApp:</strong> ${escaparHTMLPedido(pedido.cliente_whatsapp || "Não informado")}</p>
+          ${enderecoHTML}
+        </div>
+
+        <div class="pedido-bloco">
+          <h4>Itens</h4>
+          <div class="pedido-itens">
+            ${itensHTML || "<p>Nenhum item registrado.</p>"}
+          </div>
+        </div>
+
+        <div class="pedido-bloco pedido-bloco-total">
+          <h4>Resumo</h4>
+          <p><span>Subtotal</span><strong>${formatarMoedaPedidos(pedido.subtotal)}</strong></p>
+          <p><span>Entrega</span><strong>${Number(pedido.taxa_entrega || 0) > 0 ? formatarMoedaPedidos(pedido.taxa_entrega) : pedido.tipo_recebimento === "retirada" ? "Retirada" : "A combinar"}</strong></p>
+          <p class="pedido-total"><span>Total</span><strong>${formatarMoedaPedidos(pedido.total)}</strong></p>
+          <p><span>Pagamento</span><strong>${formatarPagamentoPedido(pedido)}</strong></p>
+          ${pedido.observacao ? `<div class="pedido-observacao-geral"><strong>Obs. geral:</strong> ${escaparHTMLPedido(pedido.observacao)}</div>` : ""}
+        </div>
+      </div>
+
+      <div class="pedido-card-acoes">
+        ${acaoHTML}
+        ${cancelarHTML}
+        <button class="btn-imprimir-pedido" onclick="imprimirPedido('${pedido.id}')">Imprimir</button>
+      </div>
+    </article>
+  `;
+}
+
+function formatarPagamentoPedido(pedido) {
+  const mapa = {
+    pix: "PIX",
+    dinheiro: pedido.troco_para ? `Dinheiro - troco para ${formatarMoedaPedidos(pedido.troco_para)}` : "Dinheiro",
+    cartao_entrega: "Cartão na entrega",
+    outro: "Combinar"
+  };
+
+  return mapa[pedido.pagamento] || pedido.pagamento || "Não informado";
+}
+
+function atualizarResumoPedidos() {
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  const novos = pedidosCache.filter((pedido) => normalizarStatus(pedido.status) === "novo").length;
+  const preparo = pedidosCache.filter((pedido) => {
+    const status = normalizarStatus(pedido.status);
+    return ["aceito", "preparando", "pronto", "saiu_entrega"].includes(status);
+  }).length;
+
+  const finalizadosHoje = pedidosCache.filter((pedido) => {
+    return normalizarStatus(pedido.status) === "finalizado" && String(pedido.created_at || "").slice(0, 10) === hoje;
+  });
+
+  const faturamentoHoje = pedidosCache
+    .filter((pedido) => {
+      return normalizarStatus(pedido.status) !== "cancelado" && String(pedido.created_at || "").slice(0, 10) === hoje;
+    })
+    .reduce((total, pedido) => total + Number(pedido.total || 0), 0);
+
+  if (totalPedidosNovos) totalPedidosNovos.innerText = novos;
+  if (totalPedidosPreparo) totalPedidosPreparo.innerText = preparo;
+  if (totalPedidosFinalizados) totalPedidosFinalizados.innerText = finalizadosHoje.length;
+  if (totalFaturamentoPedidos) totalFaturamentoPedidos.innerText = formatarMoedaPedidos(faturamentoHoje);
+}
+
+async function alterarStatusPedido(pedidoId, novoStatus) {
+  const { error } = await supabaseClient
+    .from("pedidos")
+    .update({
+      status: novoStatus,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", pedidoId);
+
+  if (error) {
+    console.error("Erro ao alterar status:", error);
+    alert("Não foi possível alterar o status do pedido.");
+    return;
+  }
+
+  const pedido = pedidosCache.find((item) => item.id === pedidoId);
+
+  if (pedido) {
+    pedido.status = novoStatus;
+    pedido.updated_at = new Date().toISOString();
+  }
+
+  renderizarPedidos();
+  atualizarResumoPedidos();
+}
+
+function tocarSomNovoPedido() {
+  if (!somPedidosAtivo) return;
+
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscilador = audioContext.createOscillator();
+    const ganho = audioContext.createGain();
+
+    oscilador.type = "sine";
+    oscilador.frequency.setValueAtTime(880, audioContext.currentTime);
+    ganho.gain.setValueAtTime(0.14, audioContext.currentTime);
+    ganho.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.45);
+
+    oscilador.connect(ganho);
+    ganho.connect(audioContext.destination);
+
+    oscilador.start();
+    oscilador.stop(audioContext.currentTime + 0.45);
+  } catch (error) {
+    console.warn("Não foi possível tocar som:", error);
+  }
+}
+
+function mostrarAlertaNovoPedido() {
+  if (!alertaPedidoNovo) return;
+
+  alertaPedidoNovo.classList.remove("oculto");
+
+  setTimeout(() => {
+    alertaPedidoNovo.classList.add("oculto");
+  }, 4500);
+}
+
+function iniciarRealtimePedidos() {
+  if (canalPedidos) {
+    supabaseClient.removeChannel(canalPedidos);
+  }
+
+  canalPedidos = supabaseClient
+    .channel("deliveryos-pedidos")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "pedidos"
+      },
+      (payload) => {
+        const pedidoNovo = payload.new;
+        const pedidoAntigo = payload.old;
+
+        if (lojaAtualPedidos?.id && pedidoNovo?.loja_id && pedidoNovo.loja_id !== lojaAtualPedidos.id) {
+          return;
+        }
+
+        if (payload.eventType === "INSERT") {
+          pedidosCache.unshift(pedidoNovo);
+          tocarSomNovoPedido();
+          mostrarAlertaNovoPedido();
+        }
+
+        if (payload.eventType === "UPDATE") {
+          pedidosCache = pedidosCache.map((pedido) => {
+            return pedido.id === pedidoNovo.id ? pedidoNovo : pedido;
+          });
+        }
+
+        if (payload.eventType === "DELETE") {
+          pedidosCache = pedidosCache.filter((pedido) => pedido.id !== pedidoAntigo.id);
+        }
+
+        renderizarPedidos();
+        atualizarResumoPedidos();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Realtime pedidos:", status);
+    });
+}
+
+function imprimirPedido(pedidoId) {
+  const pedido = pedidosCache.find((item) => item.id === pedidoId);
+
+  if (!pedido) return;
+
+  const janela = window.open("", "_blank", "width=420,height=700");
+
+  if (!janela) {
+    alert("O navegador bloqueou a janela de impressão.");
+    return;
+  }
+
+  const itens = Array.isArray(pedido.itens) ? pedido.itens : [];
+
+  janela.document.write(`
+    <html>
+      <head>
+        <title>Pedido ${pedido.numero_pedido || ""}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 16px;
+            color: #111;
+          }
+
+          h1 {
+            font-size: 22px;
+            margin: 0 0 8px;
+          }
+
+          h2 {
+            font-size: 16px;
+            margin: 18px 0 8px;
+            border-top: 1px dashed #999;
+            padding-top: 12px;
+          }
+
+          p {
+            margin: 4px 0;
+            font-size: 14px;
+          }
+
+          .total {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 14px;
+            border-top: 1px dashed #999;
+            padding-top: 12px;
+          }
+
+          small {
+            display: block;
+            margin-left: 12px;
+          }
+
+          @media print {
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Pedido #${pedido.numero_pedido || pedido.id.slice(0, 6)}</h1>
+        <p><strong>Cliente:</strong> ${escaparHTMLPedido(pedido.cliente_nome)}</p>
+        <p><strong>WhatsApp:</strong> ${escaparHTMLPedido(pedido.cliente_whatsapp)}</p>
+        <p><strong>Data:</strong> ${formatarDataPedido(pedido.created_at)}</p>
+
+        <h2>Itens</h2>
+        ${itens.map((item) => `
+          <p><strong>${item.quantidade}x ${escaparHTMLPedido(item.nome)}</strong></p>
+          ${(item.adicionais || []).map((adicional) => `<small>+ ${escaparHTMLPedido(adicional.nome)} - ${formatarMoedaPedidos(adicional.preco)}</small>`).join("")}
+          ${item.observacao ? `<small>Obs: ${escaparHTMLPedido(item.observacao)}</small>` : ""}
+        `).join("")}
+
+        <h2>Pagamento</h2>
+        <p>${formatarPagamentoPedido(pedido)}</p>
+
+        <p class="total">Total: ${formatarMoedaPedidos(pedido.total)}</p>
+
+        <button onclick="window.print()">Imprimir</button>
+      </body>
+    </html>
+  `);
+
+  janela.document.close();
+}
+
+function instalarFiltrosPedidos() {
+  document.querySelectorAll("[data-status-filtro]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      filtroStatusAtual = botao.dataset.statusFiltro;
+
+      document.querySelectorAll("[data-status-filtro]").forEach((btn) => {
+        btn.classList.remove("active");
+      });
+
+      botao.classList.add("active");
+      renderizarPedidos();
+    });
+  });
+}
+
+function instalarEstilosPedidos() {
+  if (document.getElementById("deliveryos-pedidos-estilos")) return;
+
+  const style = document.createElement("style");
+  style.id = "deliveryos-pedidos-estilos";
+  style.innerHTML = `
+    .pedidos-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pedidos-actions button,
+    .pedidos-filtros button {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .pedidos-filtros {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0 20px;
+    }
+
+    .pedidos-filtros button.active {
+      background: #ef4444;
+      color: white;
+    }
+
+    .alerta-pedido-novo {
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-weight: 900;
+      margin-bottom: 16px;
+      animation: pedidoPulse 1s ease infinite alternate;
+    }
+
+    @keyframes pedidoPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.01); }
+    }
+
+    .pedidos-lista {
+      display: grid;
+      gap: 16px;
+    }
+
+    .pedido-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+    }
+
+    .pedido-novo-destaque {
+      border-color: #ef4444;
+      box-shadow: 0 12px 34px rgba(239, 68, 68, 0.12);
+    }
+
+    .pedido-card-topo {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .pedido-numero {
+      display: inline-flex;
+      background: #111827;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .pedido-card h3 {
+      margin: 0 0 4px;
+      font-size: 22px;
+    }
+
+    .pedido-card-topo p {
+      margin: 0;
+      color: #6b7280;
+    }
+
+    .pedido-status {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status-novo { background: #fee2e2; color: #991b1b; }
+    .status-aceito { background: #dbeafe; color: #1d4ed8; }
+    .status-preparando { background: #fef3c7; color: #92400e; }
+    .status-pronto { background: #dcfce7; color: #166534; }
+    .status-entrega { background: #ede9fe; color: #6d28d9; }
+    .status-finalizado { background: #ecfdf5; color: #047857; }
+    .status-cancelado { background: #f3f4f6; color: #4b5563; }
+
+    .pedido-card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 0.9fr;
+      gap: 14px;
+    }
+
+    .pedido-bloco {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .pedido-bloco h4 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .pedido-bloco p {
+      margin: 5px 0;
+      color: #374151;
+      line-height: 1.35;
+    }
+
+    .pedido-itens {
+      display: grid;
+      gap: 10px;
+    }
+
+    .pedido-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .pedido-item small {
+      display: block;
+      color: #6b7280;
+      line-height: 1.35;
+    }
+
+    .pedido-observacao {
+      color: #92400e !important;
+      font-weight: 800;
+    }
+
+    .pedido-bloco-total p {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .pedido-total {
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 18px;
+    }
+
+    .pedido-total strong {
+      color: #ef4444;
+    }
+
+    .pedido-observacao-geral {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fffbeb;
+      border-radius: 12px;
+      color: #92400e;
+      line-height: 1.35;
+    }
+
+    .pedido-card-acoes {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .pedido-card-acoes button {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .btn-status-pedido {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-cancelar-pedido {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .btn-imprimir-pedido {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .pedido-estado-vazio {
+      text-align: center;
+      padding: 40px 16px;
+      border: 1px dashed #d1d5db;
+      border-radius: 22px;
+      color: #6b7280;
+    }
+
+    .pedido-estado-vazio h3 {
+      margin-bottom: 8px;
+      color: #111827;
+    }
+
+    @media (max-width: 980px) {
+      .pedido-card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .pedido-card-topo {
+        flex-direction: column;
+      }
+
+      .pedido-card-acoes {
+        justify-content: stretch;
+      }
+
+      .pedido-card-acoes button {
+        flex: 1;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+if (btnAtualizarPedidos) {
+  btnAtualizarPedidos.addEventListener("click", carregarPedidos);
+}
+
+if (btnSomPedidos) {
+  btnSomPedidos.addEventListener("click", () => {
+    somPedidosAtivo = !somPedidosAtivo;
+    btnSomPedidos.innerText = somPedidosAtivo ? "🔔 Som ligado" : "🔕 Som desligado";
+  });
+}
+
+window.alterarStatusPedido = alterarStatusPedido;
+window.imprimirPedido = imprimirPedido;
+
+async function iniciarPedidosAdmin() {
+  instalarEstilosPedidos();
+  instalarFiltrosPedidos();
+  await carregarLojaDoUsuarioPedidos();
+  await carregarPedidos();
+  iniciarRealtimePedidos();
+}
+
+iniciarPedidosAdmin();
