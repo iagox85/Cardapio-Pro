@@ -1,7 +1,11 @@
 const formConfiguracoes = document.getElementById("formConfiguracoes");
 const mensagemConfiguracoes = document.getElementById("mensagemConfiguracoes");
+const linkPublicoTexto = document.getElementById("linkPublicoTexto");
+const btnCopiarLinkLoja = document.getElementById("btnCopiarLinkLoja");
 
 let lojaAtual = null;
+let lojaSlugAtual = "";
+let linkPublicoAtual = "";
 
 async function carregarLojaDoUsuario() {
   const {
@@ -30,6 +34,44 @@ async function carregarLojaDoUsuario() {
   carregarConfiguracoes();
 }
 
+function montarLinkPublico(slug) {
+  if (!slug) return "";
+
+  const urlAtual = new URL(window.location.href);
+  const caminhoBase = urlAtual.pathname.substring(0, urlAtual.pathname.lastIndexOf("/") + 1);
+
+  return `${urlAtual.origin}${caminhoBase}loja.html?loja=${encodeURIComponent(slug)}`;
+}
+
+function atualizarLinkPublico(slug) {
+  lojaSlugAtual = slug || "";
+  linkPublicoAtual = montarLinkPublico(lojaSlugAtual);
+
+  if (!linkPublicoTexto) return;
+
+  if (!linkPublicoAtual) {
+    linkPublicoTexto.innerText = "Link indisponível. Esta loja ainda não possui slug.";
+    return;
+  }
+
+  linkPublicoTexto.innerText = linkPublicoAtual;
+}
+
+async function copiarLinkPublico() {
+  if (!linkPublicoAtual) {
+    mensagemConfiguracoes.innerText = "Link público indisponível.";
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(linkPublicoAtual);
+    mensagemConfiguracoes.innerText = "Link copiado com sucesso!";
+  } catch (error) {
+    console.error(error);
+    mensagemConfiguracoes.innerText = "Não foi possível copiar automaticamente. Selecione e copie o link manualmente.";
+  }
+}
+
 async function carregarConfiguracoes() {
   const { data, error } = await supabaseClient
     .from("lojas")
@@ -50,6 +92,8 @@ async function carregarConfiguracoes() {
   document.getElementById("lojaPix").value = data.pix_chave || "";
   document.getElementById("lojaPedidoMinimo").value = data.pedido_minimo || 0;
   document.getElementById("lojaTempoEntrega").value = data.tempo_entrega_min || 30;
+
+  atualizarLinkPublico(data.slug);
 }
 
 formConfiguracoes.addEventListener("submit", async (e) => {
@@ -86,5 +130,9 @@ formConfiguracoes.addEventListener("submit", async (e) => {
 
   mensagemConfiguracoes.innerText = "Configurações salvas com sucesso!";
 });
+
+if (btnCopiarLinkLoja) {
+  btnCopiarLinkLoja.addEventListener("click", copiarLinkPublico);
+}
 
 carregarLojaDoUsuario();
