@@ -1658,67 +1658,50 @@ button.salvando {
   }
 }
 
-
 /* ============================================================
-   DELIVERYOS - AVISO DE ÁUDIO DOS PEDIDOS
+   DELIVERYOS - SOM GLOBAL DE PEDIDOS
    ============================================================ */
-.deliveryos-audio-pedidos-aviso {
+.deliveryos-som-global-btn {
   position: fixed;
-  left: 50%;
+  right: 22px;
   bottom: 22px;
-  transform: translateX(-50%);
   z-index: 9998;
-  width: min(440px, calc(100vw - 28px));
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 15px;
-  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
   background: #ffffff;
-  color: #111827;
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  box-shadow: 0 18px 55px rgba(15, 23, 42, 0.18);
-  animation: deliveryosPedidoEntrando 0.28s ease both;
-}
-
-.deliveryos-audio-pedidos-aviso > span {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: #fee2e2;
-  color: #b91c1c;
-  font-size: 20px;
-}
-
-.deliveryos-audio-pedidos-aviso strong {
-  display: block;
+  color: #334155;
+  border-radius: 999px;
+  padding: 11px 16px;
   font-size: 13px;
-  line-height: 1.25;
-  margin-bottom: 2px;
+  font-weight: 800;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
-.deliveryos-audio-pedidos-aviso small {
-  display: block;
-  font-size: 12px;
-  line-height: 1.35;
-  color: #64748b;
+.deliveryos-som-global-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.2);
 }
 
-@media (max-width: 640px) {
-  .deliveryos-audio-pedidos-aviso {
-    bottom: 12px;
-    padding: 12px;
-    border-radius: 16px;
+.deliveryos-som-global-btn.som-ativo {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+}
+
+@media (max-width: 760px) {
+  .deliveryos-som-global-btn {
+    right: 14px;
+    bottom: 14px;
+    padding: 10px 13px;
+    font-size: 12px;
   }
 }
 
 /* ============================================================
-   DeliveryOS - Modal/alertas globais de áudio e novos pedidos
-   ============================================================ */
-.deliveryos-audio-modal-overlay {
+   DELIVERYOS - NOTIFICAÇÕES E MODAL DE ÁUDIO
+============================================================ */
+.deliveryos-audio-modal {
   position: fixed;
   inset: 0;
   z-index: 99999;
@@ -1726,101 +1709,94 @@ button.salvando {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(15, 23, 42, 0.54);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(10px);
 }
 
 .deliveryos-audio-modal-card {
-  width: min(440px, 100%);
+  width: min(420px, 100%);
   background: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.95);
   border-radius: 28px;
   padding: 28px;
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.26);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
   text-align: center;
-  animation: deliveryosModalEntrada 0.22s ease-out;
+  border: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .deliveryos-audio-modal-icon {
-  width: 62px;
-  height: 62px;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
   display: grid;
   place-items: center;
-  margin: 0 auto 14px;
-  border-radius: 22px;
-  background: #fee2e2;
-  color: #dc2626;
-  font-size: 28px;
-}
-
-.deliveryos-audio-modal-kicker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  margin: 0 auto 16px;
+  background: #fff1f2;
+  color: #ef4444;
+  font-size: 30px;
 }
 
 .deliveryos-audio-modal-card h2 {
   margin: 0 0 10px;
-  color: #0f172a;
   font-size: 24px;
-  line-height: 1.15;
+  color: #111827;
 }
 
 .deliveryos-audio-modal-card p {
   margin: 0 0 20px;
   color: #64748b;
-  font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
 .deliveryos-audio-modal-card button {
   width: 100%;
-  border: 0;
+  border: none;
   border-radius: 16px;
-  padding: 15px 18px;
-  background: #dc2626;
+  padding: 14px 18px;
+  background: #ef4444;
   color: #ffffff;
-  font-size: 15px;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 16px 30px rgba(220, 38, 38, 0.24);
-}
-
-.deliveryos-audio-modal-card button:hover {
-  background: #b91c1c;
+  box-shadow: 0 14px 30px rgba(239, 68, 68, 0.28);
 }
 
 .deliveryos-audio-modal-card small {
   display: block;
-  margin-top: 12px;
+  margin-top: 14px;
   color: #94a3b8;
-  font-size: 12px;
+  font-weight: 700;
+}
+
+.deliveryos-audio-tap-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 99998;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 18px;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.35);
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .deliveryos-pedido-global-alert {
   position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 99998;
+  right: 24px;
+  bottom: 24px;
+  z-index: 99990;
   width: min(420px, calc(100vw - 32px));
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 14px;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: center;
   padding: 16px;
-  border-radius: 22px;
   background: #ffffff;
   border: 1px solid #fee2e2;
-  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
-  animation: deliveryosModalEntrada 0.22s ease-out;
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
 }
 
 .deliveryos-pedido-global-alert.oculto {
@@ -1828,14 +1804,13 @@ button.salvando {
 }
 
 .deliveryos-pedido-global-icon {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
-  background: #fee2e2;
-  color: #dc2626;
-  font-size: 22px;
+  background: #fff1f2;
+  font-size: 24px;
 }
 
 .deliveryos-pedido-global-content strong,
@@ -1844,33 +1819,35 @@ button.salvando {
 }
 
 .deliveryos-pedido-global-content strong {
-  margin-bottom: 4px;
-  color: #0f172a;
+  color: #111827;
   font-size: 15px;
+  margin-bottom: 4px;
 }
 
 .deliveryos-pedido-global-content span {
   color: #64748b;
+  font-weight: 700;
   font-size: 13px;
 }
 
 .deliveryos-pedido-global-actions {
   grid-column: 1 / -1;
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .deliveryos-pedido-global-actions button {
-  flex: 1;
-  border: 0;
+  border: none;
   border-radius: 14px;
-  padding: 11px 12px;
+  padding: 12px 14px;
   font-weight: 900;
   cursor: pointer;
 }
 
 #deliveryosBtnVerPedidoGlobal {
-  background: #dc2626;
+  background: #ef4444;
   color: #ffffff;
 }
 
@@ -1879,71 +1856,16 @@ button.salvando {
   color: #334155;
 }
 
-.deliveryos-audio-bloqueado-aviso {
-  position: fixed;
-  left: 50%;
-  bottom: 22px;
-  z-index: 99999;
-  width: min(520px, calc(100vw - 32px));
-  transform: translateX(-50%);
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
-  background: #111827;
-  color: #ffffff;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
-}
-
-.deliveryos-audio-bloqueado-aviso strong,
-.deliveryos-audio-bloqueado-aviso small {
-  display: block;
-}
-
-.deliveryos-audio-bloqueado-aviso small {
-  color: #cbd5e1;
-}
-
-.deliveryos-audio-bloqueado-aviso button {
-  border: 0;
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: #ffffff;
-  color: #111827;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-@keyframes deliveryosModalEntrada {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (max-width: 640px) {
+  .deliveryos-pedido-global-alert {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    width: auto;
+  }
+
   .deliveryos-audio-modal-card {
     border-radius: 24px;
     padding: 24px;
-  }
-
-  .deliveryos-pedido-global-alert {
-    right: 16px;
-    bottom: 16px;
-  }
-
-  .deliveryos-audio-bloqueado-aviso {
-    grid-template-columns: auto 1fr;
-  }
-
-  .deliveryos-audio-bloqueado-aviso button {
-    grid-column: 1 / -1;
-    width: 100%;
   }
 }
