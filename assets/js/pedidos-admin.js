@@ -607,18 +607,15 @@ async function alterarStatusPedido(pedidoId, novoStatus) {
 }
 
 function tocarSomNovoPedido(teste = false) {
-  // O som agora é controlado pelo componente global deliveryos-notificacoes.js.
-  // Mantemos esta função para compatibilidade com o restante do arquivo.
   if (window.DeliveryOSPedidosNotifier?.desbloquearAudio) {
     window.DeliveryOSPedidosNotifier.desbloquearAudio();
   }
 }
 
 function iniciarAlertaSonoroPedido() {
-  // O alerta sonoro é global e fica sempre ativo no painel inteiro.
-  // Esta função não toca som para evitar áudio duplicado na página de Pedidos.
-  if (window.DeliveryOSPedidosNotifier?.desbloquearAudio) {
-    window.DeliveryOSPedidosNotifier.desbloquearAudio();
+  // Mantido apenas como fallback. O som principal é controlado pelo componente global.
+  if (window.DeliveryOSPedidosNotifier?.mostrarAtivacaoAudio) {
+    window.DeliveryOSPedidosNotifier.mostrarAtivacaoAudio();
   }
 }
 
@@ -695,7 +692,12 @@ function iniciarRealtimePedidos() {
 
           pedidosDestacados.add(pedidoNovo.id);
 
-          iniciarAlertaSonoroPedido();
+          if (window.DeliveryOSPedidosNotifier?.notificarNovoPedido) {
+            window.DeliveryOSPedidosNotifier.notificarNovoPedido(pedidoNovo, "pedidos.html");
+          } else {
+            iniciarAlertaSonoroPedido();
+          }
+
           mostrarAlertaNovoPedido();
 
           setTimeout(() => {
@@ -1138,25 +1140,13 @@ if (btnAtualizarPedidos) {
   });
 }
 
-// O botão de ativar som foi removido. O som de pedidos fica sempre ativo por padrão.
+// O botão de ativar som foi removido.
+// A ativação do áudio agora é feita pelo modal global em deliveryos-notificacoes.js.
 somPedidosAtivo = true;
 salvarPreferenciaSomPedidos(true);
 if (btnSomPedidos) {
   btnSomPedidos.remove();
 }
-
-["pointerdown", "keydown", "touchstart", "click"].forEach((evento) => {
-  window.addEventListener(
-    evento,
-    () => {
-      if (somPedidosAtivo && !audioPedidoDesbloqueado) {
-        tentarDesbloquearAudioPedidos();
-        atualizarBotaoSomPedidos();
-      }
-    },
-    { passive: true }
-  );
-});
 
 
 window.addEventListener("storage", (event) => {
