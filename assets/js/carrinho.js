@@ -847,10 +847,22 @@ function limparCarrinho() {
 
   if (!confirmar) return;
 
-  carrinho = [];
-  salvarCarrinho();
-  atualizarCarrinho(true);
+  limparCarrinhoSilencioso(true);
   fecharModalCarrinho();
+}
+
+function limparCarrinhoSilencioso(animar = true) {
+  carrinho = [];
+  itemObservacaoEmEdicao = null;
+
+  try {
+    localStorage.removeItem(obterChaveCarrinho());
+  } catch (error) {
+    console.error("Erro ao remover carrinho do armazenamento:", error);
+    salvarCarrinho();
+  }
+
+  atualizarCarrinho(animar);
 }
 
 function criarFotoItemHTML(item) {
@@ -1116,6 +1128,8 @@ window.DeliveryOSCarrinho = {
   salvarObservacao: salvarObservacaoItem,
   cancelarObservacao: cancelarEdicaoObservacao,
   limpar: limparCarrinho,
+  limparSilencioso: limparCarrinhoSilencioso,
+  limparAposPedido: limparCarrinhoSilencioso,
   abrir: abrirModalCarrinho,
   atualizar: atualizarCarrinho,
   listar: () => carrinho,
