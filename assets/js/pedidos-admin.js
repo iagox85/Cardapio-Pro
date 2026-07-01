@@ -218,19 +218,45 @@ function normalizarStatus(status) {
 }
 
 async function carregarLojaDoUsuarioPedidos() {
-  const { data, error } = await supabaseClient
-    .from("lojas")
-    .select("*")
-    .limit(1)
-    .maybeSingle();
+  const {
+    data: { user },
+    error: erroUsuario
+  } = await supabaseClient.auth.getUser();
 
-  if (error) {
-    console.error("Erro ao carregar loja:", error);
+  if (erroUsuario) {
+    console.error("Erro ao verificar usuário:", erroUsuario);
     return null;
   }
 
-  lojaAtualPedidos = data;
-  return data;
+  if (!user) {
+    window.location.href = "login.html";
+    return null;
+  }
+
+  const { data: vinculo, error: erroVinculo } = await supabaseClient
+    .from("usuarios_loja")
+    .select("loja_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (erroVinculo || !vinculo?.loja_id) {
+    console.error("Usuário sem loja vinculada:", erroVinculo);
+    return null;
+  }
+
+  const { data: loja, error: erroLoja } = await supabaseClient
+    .from("lojas")
+    .select("*")
+    .eq("id", vinculo.loja_id)
+    .single();
+
+  if (erroLoja || !loja) {
+    console.error("Erro ao carregar loja:", erroLoja);
+    return null;
+  }
+
+  lojaAtualPedidos = loja;
+  return loja;
 }
 
 async function carregarPedidos() {
@@ -242,17 +268,22 @@ async function carregarPedidos() {
     await carregarLojaDoUsuarioPedidos();
   }
 
-  let query = supabaseClient
-    .from("pedidos")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(80);
-
-  if (lojaAtualPedidos?.id) {
-    query = query.eq("loja_id", lojaAtualPedidos.id);
+  if (!lojaAtualPedidos?.id) {
+    listaPedidos.innerHTML = `
+      <div class="pedido-estado-vazio">
+        <h3>Loja não vinculada</h3>
+        <p>Este usuário ainda não está vinculado a uma loja.</p>
+      </div>
+    `;
+    return;
   }
 
-  const { data, error } = await query;
+  const { data, error } = await supabaseClient
+    .from("pedidos")
+    .select("*")
+    .eq("loja_id", lojaAtualPedidos.id)
+    .order("created_at", { ascending: false })
+    .limit(80);
 
   if (error) {
     console.error("Erro ao carregar pedidos:", error);
@@ -434,13 +465,19 @@ function atualizarResumoPedidos() {
 
 async function alterarStatusPedido(pedidoId, novoStatus) {
   pararAlertaSonoroPedido();
-  const { error } = await supabaseClient
+  let query = supabaseClient
     .from("pedidos")
     .update({
       status: novoStatus,
       updated_at: new Date().toISOString()
     })
     .eq("id", pedidoId);
+
+  if (lojaAtualPedidos?.id) {
+    query = query.eq("loja_id", lojaAtualPedidos.id);
+  }
+
+  const { error } = await query;
 
   if (error) {
     console.error("Erro ao alterar status:", error);
@@ -552,15 +589,25 @@ function iniciarRealtimePedidos() {
     supabaseClient.removeChannel(canalPedidos);
   }
 
+  const canalNome = lojaAtualPedidos?.id
+    ? `deliveryos-pedidos-${lojaAtualPedidos.id}`
+    : "deliveryos-pedidos";
+
+  const configRealtime = {
+    event: "*",
+    schema: "public",
+    table: "pedidos"
+  };
+
+  if (lojaAtualPedidos?.id) {
+    configRealtime.filter = `loja_id=eq.${lojaAtualPedidos.id}`;
+  }
+
   canalPedidos = supabaseClient
-    .channel("deliveryos-pedidos")
+    .channel(canalNome)
     .on(
       "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "pedidos"
-      },
+      configRealtime,
       (payload) => {
         const pedidoNovo = payload.new;
         const pedidoAntigo = payload.old;
