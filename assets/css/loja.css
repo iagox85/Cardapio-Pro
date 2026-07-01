@@ -1239,27 +1239,441 @@ button {
 }
 
 
-/* Ajuste dos botões sociais: ícones claros de Instagram e WhatsApp */
+/* Ícones sociais oficiais em SVG */
 .social-icone-texto {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  font-size: 0;
   line-height: 1;
 }
 
-.social-instagram .social-icone-texto::before {
-  content: "IG";
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: -0.5px;
+.social-icone-texto svg {
+  width: 23px;
+  height: 23px;
+  display: block;
+  fill: currentColor;
 }
 
-.social-whatsapp .social-icone-texto::before {
-  content: "WA";
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: -0.5px;
+/* =========================================================
+   DELIVERYOS - MOBILE CARDÁPIO ESTILO APP / OLACLICK
+   Ajuste focado em celular: menos informação no topo,
+   melhor uso de espaço e produtos em lista premium.
+   ========================================================= */
+
+@media (max-width: 760px) {
+  body {
+    background: #ffffff;
+    padding-bottom: 86px;
+  }
+
+  .loja-header {
+    background: #ffffff;
+    color: #111827;
+  }
+
+  .loja-banner {
+    min-height: 0;
+    padding: 0 16px 22px;
+    border-radius: 0 0 28px 28px;
+    overflow: visible;
+    background-position: center;
+    background-size: cover;
+  }
+
+  .loja-banner::before {
+    content: "";
+    display: block;
+    height: 176px;
+    margin: 0 -16px;
+    border-radius: 0 0 22px 22px;
+    background: inherit;
+    background-position: center;
+    background-size: cover;
+  }
+
+  .loja-banner-overlay {
+    display: none;
+  }
+
+  .loja-header-content {
+    max-width: none;
+    display: block;
+    padding: 0;
+    margin-top: -62px;
+    position: relative;
+  }
+
+  .loja-perfil {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    text-align: center;
+  }
+
+  .loja-avatar {
+    width: 112px;
+    height: 112px;
+    border-radius: 22px;
+    font-size: 48px;
+    border: 5px solid #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    background: #ffffff;
+    color: var(--cor-primaria);
+  }
+
+  .loja-info {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .loja-status-line {
+    position: absolute;
+    top: -156px;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .loja-status-line::-webkit-scrollbar {
+    display: none;
+  }
+
+  .loja-status-line span {
+    min-height: 34px;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+    white-space: nowrap;
+  }
+
+  .status-loja.aberto,
+  .status-loja.fechado {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  #tipoAtendimentoLoja {
+    display: none;
+  }
+
+  .loja-info h1 {
+    margin-top: 18px;
+    font-size: 36px;
+    line-height: 1.05;
+    letter-spacing: -1.2px;
+    color: #080b12;
+    text-shadow: none;
+    max-width: 100%;
+  }
+
+  .loja-info p {
+    margin-top: 8px;
+    color: #6b7280;
+    font-size: 16px;
+    line-height: 1.35;
+    max-width: 320px;
+  }
+
+  .loja-meta-principal {
+    display: none;
+  }
+
+  .loja-header-social {
+    display: none;
+  }
+
+  .loja-detalhes-barra {
+    max-width: none;
+    margin: 16px 0 0;
+    display: block;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    text-align: center;
+    border-radius: 0;
+  }
+
+  .loja-detalhes-barra span {
+    display: none;
+  }
+
+  .loja-detalhes-barra span:first-child {
+    display: block;
+    padding: 0 10px;
+    border: none;
+    color: #6b7280;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .loja-container {
+    margin: 0;
+    padding: 0 16px 42px;
+    max-width: none;
+    background: #ffffff;
+  }
+
+  .busca-cardapio {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    margin: 0 -16px;
+    padding: 14px 16px 10px;
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid #f1f5f9;
+    backdrop-filter: blur(12px);
+  }
+
+  .campo-busca {
+    height: 52px;
+    border-radius: 12px;
+    padding: 0 15px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: none;
+  }
+
+  .campo-busca span {
+    font-size: 21px;
+  }
+
+  .campo-busca input {
+    font-size: 15px;
+  }
+
+  .categorias-wrapper {
+    position: sticky;
+    top: 76px;
+    z-index: 24;
+    margin: 0 -16px;
+    padding: 8px 16px 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid #eef2f7;
+    backdrop-filter: blur(12px);
+  }
+
+  .categorias-loja {
+    gap: 8px;
+    padding-bottom: 0;
+  }
+
+  .categorias-loja button {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #111827;
+    padding: 12px 8px 11px;
+    font-size: 15px;
+    font-weight: 900;
+    box-shadow: none;
+    position: relative;
+  }
+
+  .categorias-loja button::before {
+    display: none;
+  }
+
+  .categorias-loja button::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
+    height: 3px;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  .categorias-loja button.active,
+  .categorias-loja button:hover {
+    background: transparent;
+    color: var(--cor-primaria);
+    transform: none;
+    box-shadow: none;
+  }
+
+  .categorias-loja button.active::after,
+  .categorias-loja button:hover::after {
+    background: var(--cor-primaria);
+  }
+
+  .produtos-loja {
+    display: block;
+    padding-top: 18px;
+  }
+
+  .produto-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 126px;
+    gap: 18px;
+    min-height: 146px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #ffffff;
+    padding: 0 0 22px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid #eef2f7;
+    overflow: visible;
+  }
+
+  .produto-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .produto-imagem {
+    order: 2;
+    height: 126px;
+    min-height: 126px;
+    border-radius: 14px;
+    background: #f3f4f6;
+    align-self: start;
+    overflow: hidden;
+  }
+
+  .produto-imagem img {
+    object-fit: cover;
+  }
+
+  .produto-conteudo {
+    order: 1;
+    padding: 0;
+    min-width: 0;
+  }
+
+  .produto-topo h3 {
+    font-size: 22px;
+    line-height: 1.12;
+    letter-spacing: -0.4px;
+    font-weight: 950;
+    color: #080b12;
+  }
+
+  .produto-conteudo p {
+    margin-top: 8px;
+    color: #8a8f98;
+    font-size: 16px;
+    line-height: 1.25;
+    min-height: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .produto-rodape {
+    padding-top: 16px;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .produto-precos strong {
+    color: #080b12;
+    font-size: 23px;
+    font-weight: 950;
+    letter-spacing: -0.4px;
+  }
+
+  .produto-rodape button {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 999px;
+    font-size: 0;
+    box-shadow: 0 8px 20px rgba(239, 63, 69, 0.25);
+  }
+
+  .produto-rodape button::before {
+    content: "+";
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  .badge-promocao {
+    left: 8px;
+    top: 8px;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .produto-sem-foto,
+  .modal-sem-foto {
+    font-size: 34px;
+  }
+
+  .estado-vazio {
+    border-radius: 18px;
+    box-shadow: none;
+    border-color: #eef2f7;
+  }
+
+  .skeleton-grid {
+    display: block;
+  }
+
+  .skeleton-card {
+    min-height: 146px;
+    border-radius: 0;
+    margin-bottom: 18px;
+  }
+
+  .loja-footer {
+    margin-top: 10px;
+    padding: 36px 24px 28px;
+    border-radius: 28px 28px 0 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .loja-info h1 {
+    font-size: 32px;
+  }
+
+  .loja-avatar {
+    width: 104px;
+    height: 104px;
+  }
+
+  .produto-card {
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 14px;
+  }
+
+  .produto-imagem {
+    height: 112px;
+    min-height: 112px;
+  }
+
+  .produto-topo h3 {
+    font-size: 20px;
+  }
+
+  .produto-conteudo p {
+    font-size: 15px;
+  }
+
+  .produto-precos strong {
+    font-size: 21px;
+  }
 }
