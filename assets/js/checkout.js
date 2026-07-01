@@ -10,7 +10,38 @@
 // - Tenta salvar pedido no Supabase antes de abrir o WhatsApp
 // ============================================================
 
-const CHECKOUT_STORAGE_KEY = "deliveryos_checkout_dados";
+const CHECKOUT_STORAGE_KEY_PADRAO = "deliveryos_checkout_dados";
+
+function obterSlugLojaCheckout() {
+  const parametros = new URLSearchParams(window.location.search);
+  const slugUrl = parametros.get("loja") || parametros.get("slug");
+
+  if (slugUrl) {
+    return String(slugUrl).trim().toLowerCase();
+  }
+
+  const loja = window.DeliveryOSLojaAtual || {};
+
+  if (loja.slug) {
+    return String(loja.slug).trim().toLowerCase();
+  }
+
+  if (loja.id) {
+    return String(loja.id).trim().toLowerCase();
+  }
+
+  return "";
+}
+
+function obterChaveCheckout() {
+  const slug = obterSlugLojaCheckout();
+
+  if (!slug) {
+    return CHECKOUT_STORAGE_KEY_PADRAO;
+  }
+
+  return `${CHECKOUT_STORAGE_KEY_PADRAO}_${slug}`;
+}
 
 let checkoutEtapaAtual = 1;
 let checkoutDados = carregarDadosCheckout();
@@ -41,7 +72,7 @@ function checkoutEscaparHTML(texto) {
 
 function carregarDadosCheckout() {
   try {
-    const dados = JSON.parse(localStorage.getItem(CHECKOUT_STORAGE_KEY)) || {};
+    const dados = JSON.parse(localStorage.getItem(obterChaveCheckout())) || {};
 
     return {
       tipoRecebimento: dados.tipoRecebimento || "delivery",
@@ -80,7 +111,7 @@ function carregarDadosCheckout() {
 }
 
 function salvarDadosCheckout() {
-  localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify(checkoutDados));
+  localStorage.setItem(obterChaveCheckout(), JSON.stringify(checkoutDados));
 }
 
 function obterItensCheckout() {
