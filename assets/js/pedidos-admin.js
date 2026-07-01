@@ -9,130 +9,13 @@ const totalPedidosPreparo = document.getElementById("totalPedidosPreparo");
 const totalPedidosFinalizados = document.getElementById("totalPedidosFinalizados");
 const totalFaturamentoPedidos = document.getElementById("totalFaturamentoPedidos");
 const btnAtualizarPedidos = document.getElementById("btnAtualizarPedidos");
-const btnSomPedidos = null;
 const alertaPedidoNovo = document.getElementById("alertaPedidoNovo");
 
 let pedidosCache = [];
 let filtroStatusAtual = "todos";
-let somPedidosAtivo = false;
-let audioPedidoDesbloqueado = false;
-let intervaloSomPedido = null;
 let canalPedidos = null;
 let pedidosDestacados = new Set();
 let lojaAtualPedidos = null;
-
-const DELIVERYOS_SOM_PEDIDOS_KEY = "deliveryos_som_pedidos_ativo";
-const DELIVERYOS_AUDIO_DESBLOQUEADO_KEY = "deliveryos_audio_pedidos_desbloqueado";
-const DELIVERYOS_PEDIDO_RESOLVIDO_KEY = "deliveryos_pedido_notificacao_resolvida";
-
-function salvarPreferenciaSomPedidos(ativo) {
-  try {
-    localStorage.setItem(DELIVERYOS_SOM_PEDIDOS_KEY, ativo ? "sim" : "nao");
-  } catch (error) {
-    console.warn("Não foi possível salvar preferência de som.", error);
-  }
-}
-
-function lerPreferenciaSomPedidos() {
-  try {
-    return localStorage.getItem(DELIVERYOS_SOM_PEDIDOS_KEY) === "sim";
-  } catch (error) {
-    return false;
-  }
-}
-
-function salvarAudioDesbloqueadoPedidos() {
-  try {
-    localStorage.setItem(DELIVERYOS_AUDIO_DESBLOQUEADO_KEY, "sim");
-  } catch (error) {
-    console.warn("Não foi possível salvar desbloqueio de áudio.", error);
-  }
-}
-
-function lerAudioDesbloqueadoPedidos() {
-  try {
-    return localStorage.getItem(DELIVERYOS_AUDIO_DESBLOQUEADO_KEY) === "sim";
-  } catch (error) {
-    return false;
-  }
-}
-
-function tentarDesbloquearAudioPedidos() {
-  if (audioPedidoDesbloqueado) return true;
-
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return false;
-
-    const audioContext = new AudioContextClass();
-    const oscilador = audioContext.createOscillator();
-    const ganho = audioContext.createGain();
-
-    ganho.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    oscilador.connect(ganho);
-    ganho.connect(audioContext.destination);
-    oscilador.start();
-    oscilador.stop(audioContext.currentTime + 0.02);
-
-    audioPedidoDesbloqueado = true;
-    salvarAudioDesbloqueadoPedidos();
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-function publicarPedidoResolvidoPainelPedidos(pedidoId = null) {
-  const payload = {
-    tipo: "pedido_resolvido",
-    pedido_id: pedidoId,
-    origem: "pedidos.html",
-    timestamp: Date.now()
-  };
-
-  try {
-    localStorage.setItem(DELIVERYOS_PEDIDO_RESOLVIDO_KEY, JSON.stringify(payload));
-  } catch (error) {
-    console.warn("Não foi possível avisar as outras abas que o pedido foi resolvido.", error);
-  }
-
-  try {
-    const canal = new BroadcastChannel("deliveryos_pedidos");
-    canal.postMessage(payload);
-    canal.close();
-  } catch (error) {
-    // BroadcastChannel pode não estar disponível em navegadores antigos.
-  }
-
-  if (window.DeliveryOSPedidosNotifier?.parar) {
-    window.DeliveryOSPedidosNotifier.parar(false);
-  }
-}
-
-function atualizarBotaoSomPedidos() {
-  if (!btnSomPedidos) return;
-
-  if (somPedidosAtivo) {
-    btnSomPedidos.innerText = "🔔 Som ativado";
-    btnSomPedidos.classList.add("som-ativo");
-    btnSomPedidos.title = "O som de novos pedidos está ativado neste navegador.";
-  } else {
-    btnSomPedidos.innerText = "🔕 Ativar som";
-    btnSomPedidos.classList.remove("som-ativo");
-    btnSomPedidos.title = "Clique para ativar o som de novos pedidos neste navegador.";
-  }
-}
-
-function inicializarPreferenciaSomPedidos() {
-  somPedidosAtivo = true;
-  audioPedidoDesbloqueado = true;
-  try {
-    localStorage.setItem("deliveryos_audio_alertas_ativado", "sim");
-  } catch (error) {
-    // ignora
-  }
-}
-
 
 const STATUS_PEDIDOS = {
   novo: {
@@ -577,8 +460,6 @@ function atualizarResumoPedidos() {
 }
 
 async function alterarStatusPedido(pedidoId, novoStatus) {
-  pararAlertaSonoroPedido();
-  publicarPedidoResolvidoPainelPedidos(pedidoId);
   let query = supabaseClient
     .from("pedidos")
     .update({
@@ -608,80 +489,6 @@ async function alterarStatusPedido(pedidoId, novoStatus) {
 
   renderizarPedidos();
   atualizarResumoPedidos();
-}
-
-function tocarSomNovoPedido(teste = false) {
-  if (!somPedidosAtivo && !teste) return;
-  if (!audioPedidoDesbloqueado && !teste) return;
-
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-    const tocarNota = (frequencia, inicio, duracao, volume = 0.22) => {
-      const oscilador = audioContext.createOscillator();
-      const ganho = audioContext.createGain();
-
-      oscilador.type = "sine";
-      oscilador.frequency.setValueAtTime(frequencia, audioContext.currentTime + inicio);
-
-      ganho.gain.setValueAtTime(0.001, audioContext.currentTime + inicio);
-      ganho.gain.exponentialRampToValueAtTime(volume, audioContext.currentTime + inicio + 0.03);
-      ganho.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + inicio + duracao);
-
-      oscilador.connect(ganho);
-      ganho.connect(audioContext.destination);
-
-      oscilador.start(audioContext.currentTime + inicio);
-      oscilador.stop(audioContext.currentTime + inicio + duracao);
-    };
-
-    // Ding-dong mais perceptível, em duas ondas
-    tocarNota(784, 0.00, 0.28, 0.24);
-    tocarNota(1046, 0.18, 0.34, 0.26);
-    tocarNota(784, 0.58, 0.28, 0.22);
-    tocarNota(1046, 0.76, 0.38, 0.24);
-
-    audioPedidoDesbloqueado = true;
-    salvarAudioDesbloqueadoPedidos();
-  } catch (error) {
-    console.warn("Não foi possível tocar som:", error);
-  }
-}
-
-function iniciarAlertaSonoroPedido() {
-  if (window.DeliveryOSNotificacoes?.iniciarSomContinuo) {
-    window.DeliveryOSNotificacoes.iniciarSomContinuo();
-    return;
-  }
-
-  pararAlertaSonoroPedido();
-  tocarSomNovoPedido(true);
-  intervaloSomPedido = setInterval(() => {
-    tocarSomNovoPedido(true);
-  }, 2200);
-}
-
-function pararAlertaSonoroPedido() {
-  if (intervaloSomPedido) {
-    clearInterval(intervaloSomPedido);
-    intervaloSomPedido = null;
-  }
-
-  if (window.DeliveryOSNotificacoes?.pararSomContinuo) {
-    window.DeliveryOSNotificacoes.pararSomContinuo();
-  }
-}
-
-function ativarSomPedidos() {
-  somPedidosAtivo = true;
-  audioPedidoDesbloqueado = true;
-  if (window.DeliveryOSNotificacoes?.desbloquearAudio) {
-    window.DeliveryOSNotificacoes.desbloquearAudio();
-  }
-}
-
-function desativarSomPedidos() {
-  somPedidosAtivo = true;
 }
 
 function mostrarAlertaNovoPedido() {
@@ -733,7 +540,6 @@ function iniciarRealtimePedidos() {
 
           pedidosDestacados.add(pedidoNovo.id);
 
-          iniciarAlertaSonoroPedido();
           mostrarAlertaNovoPedido();
 
           setTimeout(() => {
@@ -762,7 +568,6 @@ function iniciarRealtimePedidos() {
 }
 
 function imprimirPedido(pedidoId) {
-  pararAlertaSonoroPedido();
   const pedido = pedidosCache.find((item) => item.id === pedidoId);
 
   if (!pedido) return;
@@ -886,10 +691,6 @@ function instalarEstilosPedidos() {
       color: #111827;
     }
 
-    #btnSomPedidos.som-ativo {
-      background: #dcfce7;
-      color: #166534;
-    }
 
     .pedidos-filtros {
       display: flex;
@@ -1171,43 +972,8 @@ function instalarEstilosPedidos() {
 
 if (btnAtualizarPedidos) {
   btnAtualizarPedidos.addEventListener("click", () => {
-    pararAlertaSonoroPedido();
     carregarPedidos();
   });
-}
-
-inicializarPreferenciaSomPedidos();
-["pointerdown", "keydown", "touchstart", "click"].forEach((evento) => {
-  window.addEventListener(
-    evento,
-    () => {
-      if (somPedidosAtivo && !audioPedidoDesbloqueado) {
-        tentarDesbloquearAudioPedidos();
-        atualizarBotaoSomPedidos();
-      }
-    },
-    { passive: true }
-  );
-});
-
-
-window.addEventListener("storage", (event) => {
-  if (event.key === DELIVERYOS_PEDIDO_RESOLVIDO_KEY) {
-    pararAlertaSonoroPedido();
-    if (alertaPedidoNovo) alertaPedidoNovo.classList.add("oculto");
-  }
-});
-
-try {
-  const canalPedidosResolvidos = new BroadcastChannel("deliveryos_pedidos");
-  canalPedidosResolvidos.onmessage = (event) => {
-    if (event?.data?.tipo === "pedido_resolvido") {
-      pararAlertaSonoroPedido();
-      if (alertaPedidoNovo) alertaPedidoNovo.classList.add("oculto");
-    }
-  };
-} catch (error) {
-  // BroadcastChannel pode não estar disponível em todos os navegadores.
 }
 
 window.alterarStatusPedido = alterarStatusPedido;

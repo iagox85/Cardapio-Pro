@@ -2,20 +2,12 @@
 // DELIVERYOS - CORE DO PAINEL
 // ------------------------------------------------------------
 // Bootstrap global do painel administrativo.
-//
-// Objetivo:
-// - Manter recursos globais fora das páginas específicas.
-// - Evitar alterar vários HTMLs a cada nova funcionalidade.
-// - Expor uma API única: window.DeliveryOS.
-//
-// Esta versão NÃO altera regras de Produtos, Pedidos, Categorias,
-// Configurações etc. Cada página continua usando seu JS específico.
 // ============================================================
 
 (function () {
   "use strict";
 
-  const VERSION = "20260701-core-v2";
+  const VERSION = "20260701-core-clean-v1";
 
   if (window.DeliveryOS && window.DeliveryOS.__version === VERSION) {
     return;
@@ -29,8 +21,7 @@
     scriptsCarregados: new Set(),
     modulos: {},
     config: {
-      paginasPublicas: new Set(["login.html", "cadastro.html", "loja.html", "index.html", "print.html"]),
-      delayNotificacoes: 800
+      paginasPublicas: new Set(["login.html", "cadastro.html", "loja.html", "index.html", "print.html"])
     }
   };
 
@@ -42,30 +33,20 @@
     console.error("[DeliveryOS Core]", ...args);
   }
 
-  function caminho(src) {
-    if (!src) return src;
-    if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/")) return src;
-    return src;
-  }
-
   DeliveryOS.carregarScript = function carregarScript(src, id = null) {
     return new Promise((resolve, reject) => {
       if (!src) return resolve(false);
 
-      const url = caminho(src);
-      const chave = id || url;
+      const chave = id || src;
 
-      if (DeliveryOS.scriptsCarregados.has(chave)) {
-        return resolve(true);
-      }
-
+      if (DeliveryOS.scriptsCarregados.has(chave)) return resolve(true);
       if (id && document.getElementById(id)) {
         DeliveryOS.scriptsCarregados.add(chave);
         return resolve(true);
       }
 
       const script = document.createElement("script");
-      script.src = url;
+      script.src = src;
       if (id) script.id = id;
       script.defer = true;
 
@@ -74,7 +55,7 @@
         resolve(true);
       };
 
-      script.onerror = () => reject(new Error(`Falha ao carregar ${url}`));
+      script.onerror = () => reject(new Error(`Falha ao carregar ${src}`));
       document.body.appendChild(script);
     });
   };
@@ -109,14 +90,15 @@
     if (!botao) return;
     botao.disabled = Boolean(carregando);
     if (carregando) botao.innerHTML = textoCarregando;
+    if (!carregando && textoFinal) botao.innerHTML = textoFinal;
   };
 
   async function carregarModulosBase() {
+    const versao = "20260701clean1";
     const modulos = [
-      ["assets/js/core/deliveryos-storage.js?v=20260701core2", "deliveryos-storage-script"],
-      ["assets/js/components/deliveryos-toast.js?v=20260701core2", "deliveryos-toast-script"],
-      ["assets/js/components/deliveryos-loading.js?v=20260701core2", "deliveryos-loading-script"],
-      ["assets/js/core/deliveryos-notifications-loader.js?v=20260701core2", "deliveryos-notifications-loader-script"]
+      [`assets/js/core/deliveryos-storage.js?v=${versao}`, "deliveryos-storage-script"],
+      [`assets/js/components/deliveryos-toast.js?v=${versao}`, "deliveryos-toast-script"],
+      [`assets/js/components/deliveryos-loading.js?v=${versao}`, "deliveryos-loading-script"]
     ];
 
     for (const [src, id] of modulos) {
@@ -128,14 +110,11 @@
     }
   }
 
-  async function iniciarNotificacoes() {
+  async function iniciarModulos() {
     if (!DeliveryOS.ehPainel()) return;
 
-    setTimeout(() => {
-      if (window.DeliveryOSNotificationsLoader?.start) {
-        window.DeliveryOSNotificationsLoader.start();
-      }
-    }, DeliveryOS.config.delayNotificacoes);
+    // Etapa 1: notificações globais ficam desativadas enquanto limpamos
+    // a implementação antiga. O módulo novo será ligado na próxima etapa.
   }
 
   DeliveryOS.init = async function init() {
@@ -148,7 +127,7 @@
     window.showToast = DeliveryOS.showToast;
     window.setButtonLoading = DeliveryOS.setButtonLoading;
 
-    iniciarNotificacoes();
+    await iniciarModulos();
 
     log("Core iniciado", {
       pagina: DeliveryOS.pagina,
