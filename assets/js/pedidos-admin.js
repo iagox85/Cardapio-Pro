@@ -14,8 +14,8 @@ const alertaPedidoNovo = document.getElementById("alertaPedidoNovo");
 
 let pedidosCache = [];
 let filtroStatusAtual = "todos";
-let somPedidosAtivo = false;
-let audioPedidoDesbloqueado = false;
+let somPedidosAtivo = true;
+let audioPedidoDesbloqueado = true;
 let intervaloSomPedido = null;
 let canalPedidos = null;
 let pedidosDestacados = new Set();
@@ -602,6 +602,9 @@ async function alterarStatusPedido(pedidoId, novoStatus) {
     pedido.updated_at = new Date().toISOString();
   }
 
+  pararAlertaSonoroPedido();
+  publicarPedidoResolvidoPainelPedidos(pedidoId);
+
   renderizarPedidos();
   atualizarResumoPedidos();
 }
@@ -744,7 +747,6 @@ function iniciarRealtimePedidos() {
 
           pedidosDestacados.add(pedidoNovo.id);
 
-          iniciarAlertaSonoroPedido();
           mostrarAlertaNovoPedido();
 
           setTimeout(() => {
@@ -1187,25 +1189,17 @@ if (btnAtualizarPedidos) {
   });
 }
 
-if (btnSomPedidos) {
-  inicializarPreferenciaSomPedidos();
-
-  btnSomPedidos.addEventListener("click", () => {
-    if (!somPedidosAtivo || !audioPedidoDesbloqueado) {
-      ativarSomPedidos();
-    } else {
-      desativarSomPedidos();
-    }
-  });
-}
+// O som de novos pedidos agora é controlado pelo componente global
+// assets/js/deliveryos-notificacoes.js. Não existe mais botão de ativar/desativar.
+somPedidosAtivo = true;
+audioPedidoDesbloqueado = true;
 
 ["pointerdown", "keydown", "touchstart", "click"].forEach((evento) => {
   window.addEventListener(
     evento,
     () => {
-      if (somPedidosAtivo && !audioPedidoDesbloqueado) {
-        tentarDesbloquearAudioPedidos();
-        atualizarBotaoSomPedidos();
+      if (window.DeliveryOSPedidosNotifier?.desbloquearAudio) {
+        window.DeliveryOSPedidosNotifier.desbloquearAudio();
       }
     },
     { passive: true }
