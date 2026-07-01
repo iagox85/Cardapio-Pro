@@ -5,6 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Configurações - DeliveryOS</title>
   <link rel="stylesheet" href="assets/css/admin.css">
+
+<style>
+  .link-publico-loja {
+    margin-top: 24px;
+    padding: 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .link-publico-loja div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .link-publico-label {
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  #linkPublicoTexto {
+    color: #111827;
+    font-size: 15px;
+    word-break: break-all;
+  }
+
+  .link-publico-loja small {
+    color: #6b7280;
+  }
+
+  #btnCopiarLinkLoja {
+    border: none;
+    border-radius: 12px;
+    background: #111827;
+    color: #ffffff;
+    padding: 12px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  #btnCopiarLinkLoja:hover {
+    filter: brightness(0.95);
+  }
+
+  @media (max-width: 700px) {
+    .link-publico-loja {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    #btnCopiarLinkLoja {
+      width: 100%;
+    }
+  }
+</style>
 </head>
 <body>
 
@@ -48,6 +109,20 @@
         </button>
 
       </form>
+
+
+
+      <div class="link-publico-loja">
+        <div>
+          <span class="link-publico-label">Link público da loja</span>
+          <strong id="linkPublicoTexto">Carregando link...</strong>
+          <small>Compartilhe este link com seus clientes.</small>
+        </div>
+
+        <button type="button" id="btnCopiarLinkLoja">
+          Copiar link
+        </button>
+      </div>
 
       <div id="mensagemConfiguracoes"></div>
 
