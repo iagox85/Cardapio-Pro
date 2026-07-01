@@ -1,1 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar loja - DeliveryOS</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
 
+  <main class="login-page">
+    <section class="login-card cadastro-card">
+      <h1>DeliveryOS</h1>
+      <p>Crie sua conta e comece a configurar sua loja.</p>
+
+      <form id="formCadastro">
+        <input type="text" id="nomeLojaCadastro" placeholder="Nome da loja" required>
+        <input type="text" id="nomeResponsavelCadastro" placeholder="Nome do responsável" required>
+        <input type="tel" id="whatsappCadastro" placeholder="WhatsApp da loja" required>
+        <input type="email" id="emailCadastro" placeholder="E-mail de acesso" required>
+        <input type="password" id="senhaCadastro" placeholder="Senha" minlength="6" required>
+        <input type="password" id="confirmarSenhaCadastro" placeholder="Confirmar senha" minlength="6" required>
+
+        <button type="submit" id="botaoCadastro">Criar minha loja</button>
+      </form>
+
+      <div id="mensagemCadastro"></div>
+
+      <div class="login-links">
+        <span>Já tem conta?</span>
+        <a href="login.html">Entrar no painel</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/cadastro.js"></script>
+
+</body>
+</html>
