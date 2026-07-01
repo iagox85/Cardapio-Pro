@@ -1033,6 +1033,12 @@ function finalizarPedidoCarrinho() {
     return;
   }
 
+  if (window.DeliveryOSCheckout && typeof window.DeliveryOSCheckout.abrir === "function") {
+    fecharModalCarrinho();
+    window.DeliveryOSCheckout.abrir();
+    return;
+  }
+
   const loja = window.DeliveryOSLojaAtual || {};
   const numeroWhatsApp = normalizarWhatsApp(loja.whatsapp || loja.telefone || "");
 
