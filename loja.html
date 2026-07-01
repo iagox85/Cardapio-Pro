@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Cardápio Online</title>
   <link rel="stylesheet" href="assets/css/loja.css">
 </head>
@@ -13,14 +13,14 @@
     <div class="loja-banner-overlay"></div>
 
     <div class="loja-header-content">
-      <div class="loja-header-left">
+      <div class="loja-perfil">
         <div class="loja-avatar" id="lojaLogo">D</div>
 
         <div class="loja-info">
           <div class="loja-status-line">
             <span id="statusLoja" class="status-loja aberto">Aberta</span>
             <span id="tempoEntrega">Carregando...</span>
-            <span id="tipoAtendimentoLoja">Entrega e retirada</span>
+            <span id="tipoAtendimentoLoja">Entrega ou retirada</span>
           </div>
 
           <h1 id="nomeLoja">Carregando...</h1>
@@ -36,9 +36,12 @@
       <div class="loja-header-social" id="redesSociaisTopo">
         <strong>Siga-nos</strong>
         <div class="loja-social-links">
-          <a id="instagramTopo" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Instagram">◎</a>
-          <a id="whatsappTopo" href="#" target="_blank" rel="noopener" class="oculto" aria-label="WhatsApp">☘</a>
-          <a id="facebookTopo" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Facebook">f</a>
+          <a id="instagramTopo" href="#" target="_blank" rel="noopener" class="oculto social-instagram" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2Zm0 2A3.8 3.8 0 0 0 4 7.8v8.4A3.8 3.8 0 0 0 7.8 20h8.4a3.8 3.8 0 0 0 3.8-3.8V7.8A3.8 3.8 0 0 0 16.2 4H7.8Zm4.2 3.2A4.8 4.8 0 1 1 7.2 12 4.8 4.8 0 0 1 12 7.2Zm0 2A2.8 2.8 0 1 0 14.8 12 2.8 2.8 0 0 0 12 9.2Zm5-2.35a1.15 1.15 0 1 1-1.15 1.15A1.15 1.15 0 0 1 17 6.85Z"/></svg>
+          </a>
+          <a id="whatsappTopo" href="#" target="_blank" rel="noopener" class="oculto social-whatsapp" aria-label="WhatsApp">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.86 9.86 0 0 0-8.43 14.98L2.2 22l5.16-1.35A9.91 9.91 0 1 0 12.04 2Zm0 2a7.89 7.89 0 0 1 6.67 12.1 7.86 7.86 0 0 1-9.55 2.7l-.35-.17-3.06.8.82-2.98-.2-.37A7.86 7.86 0 0 1 12.04 4Zm-3.25 3.7c-.18 0-.47.07-.72.34-.25.27-.95.93-.95 2.27 0 1.34.98 2.63 1.12 2.81.14.18 1.9 3.03 4.72 4.13 2.34.92 2.82.74 3.33.69.51-.05 1.65-.67 1.88-1.32.23-.65.23-1.2.16-1.32-.07-.12-.25-.19-.53-.33-.28-.14-1.65-.81-1.9-.9-.25-.09-.44-.14-.62.14-.18.28-.71.9-.87 1.09-.16.19-.32.21-.6.07-.28-.14-1.18-.43-2.24-1.38-.83-.74-1.39-1.65-1.55-1.93-.16-.28-.02-.43.12-.57.12-.12.28-.32.42-.49.14-.16.18-.28.28-.46.09-.19.05-.35-.02-.49-.07-.14-.62-1.49-.85-2.04-.22-.53-.45-.46-.62-.47h-.53Z"/></svg>
+          </a>
         </div>
       </div>
     </div>
@@ -79,14 +82,17 @@
       <h3 id="nomeLojaRodape">DeliveryOS</h3>
       <p id="descricaoLojaRodape">Cardápio online seguro, rápido e fácil de usar.</p>
       <div class="footer-social" id="redesSociaisRodape">
-        <a id="instagramRodape" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Instagram">◎</a>
-        <a id="whatsappRodape" href="#" target="_blank" rel="noopener" class="oculto" aria-label="WhatsApp">☘</a>
-        <a id="facebookRodape" href="#" target="_blank" rel="noopener" class="oculto" aria-label="Facebook">f</a>
+        <a id="instagramRodape" href="#" target="_blank" rel="noopener" class="oculto social-instagram" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2Zm0 2A3.8 3.8 0 0 0 4 7.8v8.4A3.8 3.8 0 0 0 7.8 20h8.4a3.8 3.8 0 0 0 3.8-3.8V7.8A3.8 3.8 0 0 0 16.2 4H7.8Zm4.2 3.2A4.8 4.8 0 1 1 7.2 12 4.8 4.8 0 0 1 12 7.2Zm0 2A2.8 2.8 0 1 0 14.8 12 2.8 2.8 0 0 0 12 9.2Zm5-2.35a1.15 1.15 0 1 1-1.15 1.15A1.15 1.15 0 0 1 17 6.85Z"/></svg>
+        </a>
+        <a id="whatsappRodape" href="#" target="_blank" rel="noopener" class="oculto social-whatsapp" aria-label="WhatsApp">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.86 9.86 0 0 0-8.43 14.98L2.2 22l5.16-1.35A9.91 9.91 0 1 0 12.04 2Zm0 2a7.89 7.89 0 0 1 6.67 12.1 7.86 7.86 0 0 1-9.55 2.7l-.35-.17-3.06.8.82-2.98-.2-.37A7.86 7.86 0 0 1 12.04 4Zm-3.25 3.7c-.18 0-.47.07-.72.34-.25.27-.95.93-.95 2.27 0 1.34.98 2.63 1.12 2.81.14.18 1.9 3.03 4.72 4.13 2.34.92 2.82.74 3.33.69.51-.05 1.65-.67 1.88-1.32.23-.65.23-1.2.16-1.32-.07-.12-.25-.19-.53-.33-.28-.14-1.65-.81-1.9-.9-.25-.09-.44-.14-.62.14-.18.28-.71.9-.87 1.09-.16.19-.32.21-.6.07-.28-.14-1.18-.43-2.24-1.38-.83-.74-1.39-1.65-1.55-1.93-.16-.28-.02-.43.12-.57.12-.12.28-.32.42-.49.14-.16.18-.28.28-.46.09-.19.05-.35-.02-.49-.07-.14-.62-1.49-.85-2.04-.22-.53-.45-.46-.62-.47h-.53Z"/></svg>
+        </a>
       </div>
     </div>
 
     <div class="footer-col">
-      <h4>Informações</h4>
+      <h4>Informações da loja</h4>
       <p id="enderecoLojaRodape">📍 Endereço não informado</p>
       <p id="telefoneLojaRodape">☎ Telefone não informado</p>
       <p id="horarioLojaRodape">🕒 Atendimento online</p>
@@ -109,9 +115,10 @@
     </div>
 
     <div class="footer-col footer-seguranca">
-      <h4>Segurança</h4>
+      <h4>Confiança e segurança</h4>
       <p>🔒 Site seguro</p>
       <p>🛡️ Seus dados protegidos</p>
+      <p>📲 Atendimento direto com a loja</p>
       <p class="powered">Powered by <strong>DeliveryOS</strong></p>
     </div>
   </div>
@@ -187,7 +194,7 @@
   </div>
 
   <button id="abrirCarrinho">
-    Ver carrinho
+    Ver pedido
   </button>
 </div>
 
