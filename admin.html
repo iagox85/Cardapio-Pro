@@ -12,7 +12,7 @@
 
   <aside id="sidebar" class="sidebar"></aside>
 
-  <main class="content">
+  <main class="content page-stack">
 
     <header class="topbar">
       <div>
@@ -26,50 +26,84 @@
       </div>
     </header>
 
+    <section class="page-hero">
+      <div>
+        <span class="page-hero-kicker">🚀 Painel da loja</span>
+        <h2>Controle sua operação em um só lugar</h2>
+        <p>Acompanhe pedidos, produtos, configurações e desempenho da loja com uma experiência mais limpa e profissional.</p>
+      </div>
+
+      <div class="page-hero-actions">
+        <a class="btn-admin-secondary" href="produtos.html">Cadastrar produto</a>
+        <a class="btn-admin-secondary" href="pedidos.html">Ver pedidos</a>
+      </div>
+    </section>
+
     <section class="cards">
-      <div class="card">
+      <div class="card admin-metric-card">
         <span>Vendas hoje</span>
         <strong>R$ 0,00</strong>
       </div>
 
-      <div class="card">
+      <div class="card admin-metric-card">
         <span>Pedidos hoje</span>
         <strong>0</strong>
       </div>
 
-      <div class="card">
+      <div class="card admin-metric-card">
         <span>Pedidos novos</span>
         <strong>0</strong>
       </div>
 
-      <div class="card">
+      <div class="card admin-metric-card">
         <span>Status da loja</span>
         <strong class="status-open">Aberta</strong>
       </div>
     </section>
 
-    <section class="dashboard-grid">
+    <section class="dashboard-welcome-grid">
       <div class="panel">
-        <h2>Pedidos recentes</h2>
-        <p>Nenhum pedido recebido ainda.</p>
+        <div class="panel-header">
+          <div>
+            <h2>Pedidos recentes</h2>
+            <p class="panel-subtitle">Os últimos pedidos recebidos aparecerão aqui.</p>
+          </div>
+        </div>
+
+        <div class="admin-empty-state">
+          <strong>Nenhum pedido recebido ainda</strong>
+          <p>Assim que um cliente finalizar o checkout, você verá o pedido em tempo real.</p>
+        </div>
       </div>
 
       <div class="panel">
-        <h2>Resumo rápido</h2>
-
-        <div class="summary-item">
-          <span>Ticket médio</span>
-          <strong>R$ 0,00</strong>
+        <div class="panel-header">
+          <div>
+            <h2>Ações rápidas</h2>
+            <p class="panel-subtitle">Atalhos para as principais áreas.</p>
+          </div>
         </div>
 
-        <div class="summary-item">
-          <span>Produto mais vendido</span>
-          <strong>Nenhum</strong>
-        </div>
+        <div class="quick-actions-grid">
+          <a class="quick-action-card" href="produtos.html">
+            <strong>🍔 Produtos</strong>
+            <span>Cadastre e edite o cardápio.</span>
+          </a>
 
-        <div class="summary-item">
-          <span>Faturamento mensal</span>
-          <strong>R$ 0,00</strong>
+          <a class="quick-action-card" href="categorias.html">
+            <strong>📂 Categorias</strong>
+            <span>Organize seus produtos.</span>
+          </a>
+
+          <a class="quick-action-card" href="pedidos.html">
+            <strong>📦 Pedidos</strong>
+            <span>Acompanhe em tempo real.</span>
+          </a>
+
+          <a class="quick-action-card" href="configuracoes.html">
+            <strong>⚙️ Configurações</strong>
+            <span>Personalize sua loja.</span>
+          </a>
         </div>
       </div>
     </section>
