@@ -489,6 +489,10 @@ async function alterarStatusPedido(pedidoId, novoStatus) {
 
   renderizarPedidos();
   atualizarResumoPedidos();
+
+  if (["preparando", "cancelado", "aceito"].includes(novoStatus)) {
+    window.DeliveryOSNotifications?.stopAlerts?.({ avisarAbas: true });
+  }
 }
 
 function mostrarAlertaNovoPedido() {
@@ -539,8 +543,6 @@ function iniciarRealtimePedidos() {
           pedidosCache.unshift(pedidoNovo);
 
           pedidosDestacados.add(pedidoNovo.id);
-
-          mostrarAlertaNovoPedido();
 
           setTimeout(() => {
             pedidosDestacados.delete(pedidoNovo.id);

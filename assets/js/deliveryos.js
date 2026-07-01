@@ -7,7 +7,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "20260701-core-clean-v1";
+  const VERSION = "20260701-core-notifications-ui";
 
   if (window.DeliveryOS && window.DeliveryOS.__version === VERSION) {
     return;
@@ -94,11 +94,14 @@
   };
 
   async function carregarModulosBase() {
-    const versao = "20260701clean1";
+    const versao = "20260701notificacoes-ui";
     const modulos = [
       [`assets/js/core/deliveryos-storage.js?v=${versao}`, "deliveryos-storage-script"],
       [`assets/js/components/deliveryos-toast.js?v=${versao}`, "deliveryos-toast-script"],
-      [`assets/js/components/deliveryos-loading.js?v=${versao}`, "deliveryos-loading-script"]
+      [`assets/js/components/deliveryos-loading.js?v=${versao}`, "deliveryos-loading-script"],
+      [`assets/js/core/deliveryos-audio.js?v=${versao}`, "deliveryos-audio-script"],
+      [`assets/js/core/deliveryos-realtime.js?v=${versao}`, "deliveryos-realtime-script"],
+      [`assets/js/core/deliveryos-notifications.js?v=${versao}`, "deliveryos-notifications-script"]
     ];
 
     for (const [src, id] of modulos) {
@@ -113,8 +116,22 @@
   async function iniciarModulos() {
     if (!DeliveryOS.ehPainel()) return;
 
-    // Etapa 1: notificações globais ficam desativadas enquanto limpamos
-    // a implementação antiga. O módulo novo será ligado na próxima etapa.
+    if (!window.supabaseClient) {
+      erro("supabaseClient não encontrado. Verifique se assets/js/supabase.js foi carregado antes do core.");
+      return;
+    }
+
+    if (window.DeliveryOSAudio?.init) {
+      window.DeliveryOSAudio.init();
+    }
+
+    if (window.DeliveryOSRealtime?.start) {
+      await window.DeliveryOSRealtime.start();
+    }
+
+    if (window.DeliveryOSNotifications?.start) {
+      await window.DeliveryOSNotifications.start();
+    }
   }
 
   DeliveryOS.init = async function init() {

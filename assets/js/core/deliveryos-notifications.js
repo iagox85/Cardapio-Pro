@@ -1,8 +1,8 @@
 // ============================================================
 // DELIVERYOS - CORE / NOTIFICAÇÕES
 // ------------------------------------------------------------
-// Orquestra alertas globais do painel a partir dos eventos do
-// DeliveryOSRealtime. Não escuta Supabase diretamente.
+// Orquestra notificações globais do painel a partir dos eventos
+// emitidos pelo DeliveryOSRealtime.
 // ============================================================
 
 (function () {
@@ -10,8 +10,8 @@
 
   if (window.DeliveryOSNotifications) return;
 
-  const CANAL_ABAS = "deliveryos_core_notifications";
-  const STORAGE_EVENT_KEY = "deliveryos_core_notification_event";
+  const CANAL_ABAS = "deliveryos_notificacoes_painel";
+  const STORAGE_EVENT_KEY = "deliveryos_notificacoes_evento";
   const TITULO_ORIGINAL = document.title;
 
   let iniciado = false;
@@ -19,6 +19,8 @@
   let pedidoAtivo = null;
   let intervaloTitulo = null;
   let tituloPiscando = false;
+  let badgePedidos = null;
+  let observerMenu = null;
 
   function paginaAtual() {
     return (window.DeliveryOS?.pagina || location.pathname.split("/").pop() || "admin.html").toLowerCase();
@@ -28,6 +30,19 @@
     return paginaAtual() === "pedidos.html";
   }
 
+  function idPedido(pedido) {
+    return pedido?.id ? String(pedido.id) : null;
+  }
+
+  function statusPedido(pedido) {
+    return String(pedido?.status || "novo").toLowerCase();
+  }
+
+  function pedidoFoiResolvido(pedido) {
+    const status = statusPedido(pedido);
+    return status && status !== "novo";
+  }
+
   function formatarMoeda(valor) {
     return Number(valor || 0).toLocaleString("pt-BR", {
       style: "currency",
@@ -35,10 +50,25 @@
     });
   }
 
+  function quantidadeItens(pedido) {
+    const itens = Array.isArray(pedido?.itens) ? pedido.itens : [];
+    return itens.reduce((total, item) => total + Number(item?.quantidade || 1), 0);
+  }
+
+  function tipoRecebimento(pedido) {
+    const tipo = String(pedido?.tipo_recebimento || pedido?.tipo_entrega || "delivery").toLowerCase();
+    return tipo === "retirada" ? "Retirada" : "Entrega";
+  }
+
   function resumoPedido(pedido) {
     const nome = pedido?.cliente_nome || pedido?.cliente || pedido?.nome_cliente || "Novo pedido";
-    const total = formatarMoeda(pedido?.total || 0);
-    return `${nome} • ${total}`;
+    return `${nome} • ${formatarMoeda(pedido?.total || 0)}`;
+  }
+
+  function detalhesPedido(pedido) {
+    const qtd = quantidadeItens(pedido);
+    const itensTexto = qtd === 1 ? "1 item" : `${qtd || 0} itens`;
+    return `${itensTexto} • ${tipoRecebimento(pedido)}`;
   }
 
   function publicarAbas(payload) {
@@ -69,17 +99,20 @@
 
     const alerta = document.createElement("div");
     alerta.id = "deliveryosPedidoGlobalAlert";
-    alerta.className = "deliveryos-pedido-global-alert";
+    alerta.className = "deliveryos-pedido-global-alert deliveryos-pedido-global-alert--compacto";
     alerta.innerHTML = `
-      <div class="deliveryos-pedido-global-icon">🔔</div>
+      <div class="deliveryos-pedido-global-barra" aria-hidden="true"></div>
+      <div class="deliveryos-pedido-global-icon" aria-hidden="true">🔔</div>
       <div class="deliveryos-pedido-global-content">
-        <strong>Novo pedido recebido</strong>
-        <span>${resumoPedido(pedido)}</span>
+        <small>Novo pedido</small>
+        <strong>${resumoPedido(pedido)}</strong>
+        <span>${detalhesPedido(pedido)}</span>
         <div class="deliveryos-pedido-global-actions">
-          <button type="button" id="deliveryosBtnVerPedidoGlobal">Ver pedidos</button>
+          <button type="button" id="deliveryosBtnVerPedidoGlobal">Ver pedido</button>
           <button type="button" id="deliveryosBtnSilenciarPedidoGlobal">Silenciar</button>
         </div>
       </div>
+      <button type="button" class="deliveryos-pedido-global-fechar" id="deliveryosBtnFecharPedidoGlobal" aria-label="Silenciar notificação">×</button>
     `;
 
     document.body.appendChild(alerta);
@@ -92,41 +125,99 @@
     alerta.querySelector("#deliveryosBtnSilenciarPedidoGlobal")?.addEventListener("click", () => {
       pararAlertas({ avisarAbas: true });
     });
+
+    alerta.querySelector("#deliveryosBtnFecharPedidoGlobal")?.addEventListener("click", () => {
+      pararAlertas({ avisarAbas: true });
+    });
   }
 
-  function iniciarPiscarTitulo() {
-    if (estaEmPedidos() || intervaloTitulo) return;
+  function encontrarLinkPedidos() {
+    return document.querySelector('.sidebar a[href="pedidos.html"], #sidebar a[href="pedidos.html"], nav a[href="pedidos.html"]');
+  }
+
+  function aplicarBadgeMenu() {
+    const link = encontrarLinkPedidos();
+    if (!link) return false;
+
+    link.classList.add("deliveryos-menu-pedidos-alerta");
+
+    badgePedidos = link.querySelector(".deliveryos-menu-pedidos-badge");
+    if (!badgePedidos) {
+      badgePedidos = document.createElement("span");
+      badgePedidos.className = "deliveryos-menu-pedidos-badge";
+      link.appendChild(badgePedidos);
+    }
+
+    badgePedidos.textContent = "1";
+    badgePedidos.setAttribute("aria-label", "1 pedido novo");
+    return true;
+  }
+
+  function iniciarBadgeMenu() {
+    if (estaEmPedidos()) return;
+    if (aplicarBadgeMenu()) return;
+
+    if (observerMenu) return;
+
+    observerMenu = new MutationObserver(() => {
+      if (aplicarBadgeMenu()) {
+        observerMenu.disconnect();
+        observerMenu = null;
+      }
+    });
+
+    observerMenu.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function pararBadgeMenu() {
+    if (observerMenu) {
+      observerMenu.disconnect();
+      observerMenu = null;
+    }
+
+    document.querySelectorAll(".deliveryos-menu-pedidos-alerta").forEach((link) => {
+      link.classList.remove("deliveryos-menu-pedidos-alerta");
+      link.querySelector(".deliveryos-menu-pedidos-badge")?.remove();
+    });
+
+    badgePedidos = null;
+  }
+
+  function iniciarTituloPiscando() {
+    if (intervaloTitulo || estaEmPedidos()) return;
 
     intervaloTitulo = setInterval(() => {
       tituloPiscando = !tituloPiscando;
-      document.title = tituloPiscando ? "🔔 Novo pedido!" : TITULO_ORIGINAL;
+      document.title = tituloPiscando ? "🔴 Novo pedido!" : TITULO_ORIGINAL;
     }, 900);
   }
 
-  function pararPiscarTitulo() {
+  function pararTituloPiscando() {
     if (intervaloTitulo) {
       clearInterval(intervaloTitulo);
       intervaloTitulo = null;
     }
+
     tituloPiscando = false;
     document.title = TITULO_ORIGINAL;
   }
 
-  function iniciarAlertas(pedido, { avisarAbas = true } = {}) {
-    if (!pedido?.id) return;
+  function iniciarAlertas(pedido, { avisarAbas = true, origemAbas = false } = {}) {
+    const id = idPedido(pedido);
+    if (!id) return;
 
     pedidoAtivo = pedido;
 
     if (estaEmPedidos()) {
-      if (avisarAbas) publicarAbas({ tipo: "parar_alerta", pedido_id: pedido.id });
-      return;
+      window.DeliveryOSAudio?.startLoop?.();
+    } else {
+      mostrarToastPedido(pedido);
+      iniciarTituloPiscando();
+      iniciarBadgeMenu();
+      window.DeliveryOSAudio?.startLoop?.();
     }
 
-    mostrarToastPedido(pedido);
-    iniciarPiscarTitulo();
-    window.DeliveryOSAudio?.startLoop?.();
-
-    if (avisarAbas) {
+    if (avisarAbas && !origemAbas) {
       publicarAbas({ tipo: "pedido_novo", pedido });
     }
   }
@@ -134,7 +225,8 @@
   function pararAlertas({ avisarAbas = false } = {}) {
     window.DeliveryOSAudio?.stopLoop?.();
     removerToastPedido();
-    pararPiscarTitulo();
+    pararTituloPiscando();
+    pararBadgeMenu();
 
     const pedidoId = pedidoAtivo?.id || null;
     pedidoAtivo = null;
@@ -142,11 +234,6 @@
     if (avisarAbas) {
       publicarAbas({ tipo: "parar_alerta", pedido_id: pedidoId });
     }
-  }
-
-  function pedidoFoiResolvido(pedido) {
-    const status = pedido?.status || "novo";
-    return status && status !== "novo";
   }
 
   function aoPedidoNovo(event) {
@@ -158,7 +245,16 @@
     const pedido = event?.detail?.pedido;
     if (!pedido?.id) return;
 
-    if (pedidoAtivo?.id === pedido.id && pedidoFoiResolvido(pedido)) {
+    if (pedidoAtivo?.id && String(pedidoAtivo.id) === String(pedido.id) && pedidoFoiResolvido(pedido)) {
+      pararAlertas({ avisarAbas: true });
+    }
+  }
+
+  function aoPedidoRemovido(event) {
+    const pedido = event?.detail?.pedido;
+    if (!pedido?.id) return;
+
+    if (pedidoAtivo?.id && String(pedidoAtivo.id) === String(pedido.id)) {
       pararAlertas({ avisarAbas: true });
     }
   }
@@ -168,8 +264,9 @@
 
     if (payload.tipo === "pedido_novo") {
       const pedido = payload.pedido;
-      if (pedidoAtivo?.id === pedido?.id) return;
-      iniciarAlertas(pedido, { avisarAbas: false });
+      if (!pedido?.id) return;
+      if (pedidoAtivo?.id && String(pedidoAtivo.id) === String(pedido.id)) return;
+      iniciarAlertas(pedido, { avisarAbas: false, origemAbas: true });
     }
 
     if (payload.tipo === "parar_alerta") {
@@ -191,38 +288,33 @@
     });
   }
 
-  function configurarParadaAoAbrirPedidos() {
+  function configurarParadaAoEntrarEmPedidos() {
     if (!estaEmPedidos()) return;
 
-    const parar = () => publicarAbas({ tipo: "parar_alerta", motivo: "pedidos_aberto" });
-
-    parar();
-    window.addEventListener("focus", parar);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) parar();
-    });
+    // Ao abrir a página de pedidos, qualquer alerta vindo de outra página para.
+    publicarAbas({ tipo: "parar_alerta", motivo: "pedidos_aberto" });
   }
 
-  function start() {
+  async function start() {
     if (iniciado) return;
     iniciado = true;
 
-    window.DeliveryOSAudio?.init?.();
-
     configurarComunicacaoAbas();
-    configurarParadaAoAbrirPedidos();
+    configurarParadaAoEntrarEmPedidos();
 
     window.addEventListener("deliveryos:pedido-novo", aoPedidoNovo);
     window.addEventListener("deliveryos:pedido-atualizado", aoPedidoAtualizado);
+    window.addEventListener("deliveryos:pedido-removido", aoPedidoRemovido);
 
-    window.DeliveryOSRealtime?.start?.();
   }
 
   function stop() {
     pararAlertas({ avisarAbas: false });
+
     window.removeEventListener("deliveryos:pedido-novo", aoPedidoNovo);
     window.removeEventListener("deliveryos:pedido-atualizado", aoPedidoAtualizado);
-    window.DeliveryOSRealtime?.stop?.();
+    window.removeEventListener("deliveryos:pedido-removido", aoPedidoRemovido);
+
     iniciado = false;
   }
 
@@ -235,15 +327,5 @@
   };
 
   window.DeliveryOSNotifications = Notifications;
-
-  // Compatibilidade temporária com tentativas antigas.
-  window.DeliveryOSNotificacoes = {
-    iniciarSomContinuo: () => window.DeliveryOSAudio?.startLoop?.(),
-    pararSomContinuo: () => window.DeliveryOSAudio?.stopLoop?.(),
-    desbloquearAudio: () => window.DeliveryOSAudio?.unlock?.(),
-    start,
-    stop
-  };
-
   window.DeliveryOS?.registrarModulo?.("notifications", Notifications);
 })();

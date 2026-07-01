@@ -2050,3 +2050,298 @@ button.salvando {
     border-radius: 22px;
   }
 }
+
+/* ============================================================
+   DELIVERYOS - Notificação global compacta (Etapa 2 UI)
+   Mantém a identidade visual do painel e evita painel gigante.
+   ============================================================ */
+.deliveryos-pedido-global-alert.deliveryos-pedido-global-alert--compacto {
+  position: fixed !important;
+  top: 28px !important;
+  right: 28px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 99998 !important;
+  width: min(344px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: 4px 42px minmax(0, 1fr) 24px !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding: 12px 12px 12px 0 !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background: #111827 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.30) !important;
+  animation: deliveryosNotificacaoCompactaEntrada 0.22s ease both !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-barra {
+  align-self: stretch;
+  width: 4px;
+  min-height: 100%;
+  background: linear-gradient(180deg, #ef4444, #f43f5e);
+  border-radius: 0 999px 999px 0;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-icon {
+  width: 42px !important;
+  height: 42px !important;
+  flex: 0 0 42px !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: linear-gradient(135deg, #ef4444, #f43f5e) !important;
+  box-shadow: 0 12px 26px rgba(239, 68, 68, 0.25) !important;
+  font-size: 19px !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content {
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content small {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+  font-size: 8.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content strong {
+  display: block !important;
+  margin: 0 0 2px !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content span {
+  display: block !important;
+  margin: 0 !important;
+  color: #cbd5e1 !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-actions {
+  display: flex !important;
+  grid-column: auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-top: 10px !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-actions button {
+  min-height: 30px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 0 11px !important;
+  font-size: 11px !important;
+  line-height: 30px !important;
+  font-weight: 950 !important;
+  cursor: pointer !important;
+  transition: transform 0.18s ease, opacity 0.18s ease !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-actions button:hover {
+  transform: translateY(-1px);
+}
+
+.deliveryos-pedido-global-alert--compacto #deliveryosBtnVerPedidoGlobal {
+  background: #22c55e !important;
+  color: #052e16 !important;
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.18) !important;
+}
+
+.deliveryos-pedido-global-alert--compacto #deliveryosBtnSilenciarPedidoGlobal {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.deliveryos-pedido-global-fechar {
+  width: 24px !important;
+  height: 24px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.deliveryos-pedido-global-fechar:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.sidebar a.deliveryos-menu-pedidos-alerta,
+#sidebar a.deliveryos-menu-pedidos-alerta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ffffff;
+}
+
+.deliveryos-menu-pedidos-badge {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ef4444, #f43f5e);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.34);
+  animation: deliveryosBadgePedidoPulse 1.15s ease-in-out infinite;
+}
+
+@keyframes deliveryosNotificacaoCompactaEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes deliveryosBadgePedidoPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.34);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 10px 24px rgba(239, 68, 68, 0.52);
+  }
+}
+
+@media (max-width: 640px) {
+  .deliveryos-pedido-global-alert.deliveryos-pedido-global-alert--compacto {
+    top: auto !important;
+    right: 12px !important;
+    bottom: 14px !important;
+    left: 12px !important;
+    width: auto !important;
+    grid-template-columns: 5px 42px minmax(0, 1fr) 26px !important;
+    gap: 10px !important;
+    padding: 12px 12px 12px 0 !important;
+    border-radius: 18px !important;
+  }
+
+  .deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-icon {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 14px !important;
+    font-size: 19px !important;
+  }
+
+  .deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-actions {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* ============================================================
+   DELIVERYOS - Ajuste final da notificação global
+   Refinamento aplicado sobre o componente real da notificação.
+   ============================================================ */
+.deliveryos-pedido-global-alert.deliveryos-pedido-global-alert--compacto {
+  top: 54px !important;
+  right: 24px !important;
+  width: min(318px, calc(100vw - 32px)) !important;
+  grid-template-columns: 3px 38px minmax(0, 1fr) 22px !important;
+  gap: 9px !important;
+  padding: 10px 10px 10px 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.28) !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-barra {
+  width: 3px !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-icon {
+  width: 38px !important;
+  height: 38px !important;
+  flex-basis: 38px !important;
+  border-radius: 13px !important;
+  font-size: 17px !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content small {
+  margin-bottom: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 7.5px !important;
+  letter-spacing: 0.035em !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content strong {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  margin-bottom: 2px !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-content span {
+  font-size: 10.5px !important;
+  line-height: 1.2 !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-actions {
+  gap: 6px !important;
+  margin-top: 9px !important;
+}
+
+.deliveryos-pedido-global-alert--compacto .deliveryos-pedido-global-actions button {
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 10.5px !important;
+  line-height: 28px !important;
+}
+
+.deliveryos-pedido-global-fechar {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 18px !important;
+}
+
+@media (max-width: 640px) {
+  .deliveryos-pedido-global-alert.deliveryos-pedido-global-alert--compacto {
+    top: auto !important;
+    right: 12px !important;
+    bottom: 16px !important;
+    left: 12px !important;
+    width: auto !important;
+  }
+}

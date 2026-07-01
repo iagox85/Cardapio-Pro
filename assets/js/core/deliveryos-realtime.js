@@ -1,8 +1,9 @@
 // ============================================================
 // DELIVERYOS - CORE / REALTIME
 // ------------------------------------------------------------
-// Serviço único de Realtime do painel.
-// Ele não toca som e não mostra toast; apenas emite eventos.
+// Serviço global de eventos do painel.
+// Escuta pedidos no Supabase e emite eventos internos.
+// Não toca som, não mostra toast e não altera tela.
 // ============================================================
 
 (function () {
@@ -10,23 +11,33 @@
 
   if (window.DeliveryOSRealtime) return;
 
-  let iniciado = false;
-  let canalPedidos = null;
-  let lojaAtual = null;
-  let idsConhecidos = new Set();
-  let ultimoPoll = 0;
-  let intervaloPoll = null;
-
   const EVENTO_PEDIDO_NOVO = "deliveryos:pedido-novo";
   const EVENTO_PEDIDO_ATUALIZADO = "deliveryos:pedido-atualizado";
   const EVENTO_PEDIDO_REMOVIDO = "deliveryos:pedido-removido";
+
+  let iniciado = false;
+  let lojaAtual = null;
+  let canalPedidos = null;
+  let intervaloPolling = null;
+  let idsConhecidos = new Set();
 
   function emitir(nome, detalhe = {}) {
     window.dispatchEvent(new CustomEvent(nome, { detail: detalhe }));
   }
 
-  function normalizarStatus(status) {
-    return status || "novo";
+  function idPedido(pedido) {
+    return pedido?.id ? String(pedido.id) : null;
+  }
+
+  function statusPedido(pedido) {
+    return String(pedido?.status || "novo").toLowerCase();
+  }
+
+  function pedidoPertenceLoja(pedido) {
+    if (!pedido?.id) return false;
+    if (!lojaAtual?.id) return true;
+    if (!pedido.loja_id) return true;
+    return String(pedido.loja_id) === String(lojaAtual.id);
   }
 
   async function obterLojaAtual() {
@@ -41,19 +52,18 @@
     const usuario = authData?.user;
 
     if (authError || !usuario?.id) {
-      console.warn("[DeliveryOS Realtime] Usuário não autenticado.", authError);
+      console.warn("[DeliveryOS Realtime] usuário não autenticado.", authError);
       return null;
     }
 
     const { data: vinculo, error: vinculoError } = await supabaseClient
       .from("usuarios_loja")
       .select("loja_id")
-      .eq("usuario_id", usuario.id)
-      .eq("ativo", true)
+      .eq("user_id", usuario.id)
       .maybeSingle();
 
     if (vinculoError || !vinculo?.loja_id) {
-      console.warn("[DeliveryOS Realtime] Loja do usuário não encontrada.", vinculoError);
+      console.warn("[DeliveryOS Realtime] loja do usuário não encontrada.", vinculoError);
       return null;
     }
 
@@ -61,50 +71,52 @@
     return lojaAtual;
   }
 
-  async function carregarBasePedidosConhecidos() {
-    if (!lojaAtual?.id) return;
+  async function carregarBaseInicial() {
+    if (!lojaAtual?.id || !window.supabaseClient) return;
 
     const { data, error } = await supabaseClient
       .from("pedidos")
-      .select("id, created_at")
+      .select("id")
       .eq("loja_id", lojaAtual.id)
-      .eq("status", "novo")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(80);
 
     if (error) {
-      console.warn("[DeliveryOS Realtime] Não foi possível carregar base de pedidos.", error);
+      console.warn("[DeliveryOS Realtime] falha ao carregar base inicial.", error);
       return;
     }
 
-    (data || []).forEach((pedido) => idsConhecidos.add(String(pedido.id)));
-    ultimoPoll = Date.now();
+    (data || []).forEach((pedido) => {
+      const id = idPedido(pedido);
+      if (id) idsConhecidos.add(id);
+    });
   }
 
-  function tratarInsert(pedido, origem = "realtime") {
-    if (!pedido?.id) return;
-    if (lojaAtual?.id && pedido.loja_id && pedido.loja_id !== lojaAtual.id) return;
+  function tratarNovoPedido(pedido, origem = "realtime") {
+    const id = idPedido(pedido);
+    if (!id || !pedidoPertenceLoja(pedido)) return;
 
-    const id = String(pedido.id);
     if (idsConhecidos.has(id)) return;
-
     idsConhecidos.add(id);
 
-    if (normalizarStatus(pedido.status) === "novo") {
+    if (statusPedido(pedido) === "novo") {
       emitir(EVENTO_PEDIDO_NOVO, { pedido, origem });
     }
   }
 
-  function tratarUpdate(pedidoNovo, pedidoAntigo = null, origem = "realtime") {
-    if (!pedidoNovo?.id) return;
-    if (lojaAtual?.id && pedidoNovo.loja_id && pedidoNovo.loja_id !== lojaAtual.id) return;
+  function tratarAtualizacaoPedido(pedidoNovo, pedidoAntigo = null, origem = "realtime") {
+    const id = idPedido(pedidoNovo);
+    if (!id || !pedidoPertenceLoja(pedidoNovo)) return;
 
-    idsConhecidos.add(String(pedidoNovo.id));
+    idsConhecidos.add(id);
     emitir(EVENTO_PEDIDO_ATUALIZADO, { pedido: pedidoNovo, anterior: pedidoAntigo, origem });
   }
 
-  function tratarDelete(pedidoAntigo, origem = "realtime") {
-    if (!pedidoAntigo?.id) return;
+  function tratarRemocaoPedido(pedidoAntigo, origem = "realtime") {
+    const id = idPedido(pedidoAntigo);
+    if (!id) return;
+
+    idsConhecidos.delete(id);
     emitir(EVENTO_PEDIDO_REMOVIDO, { pedido: pedidoAntigo, origem });
   }
 
@@ -128,9 +140,9 @@
           filter: `loja_id=eq.${lojaAtual.id}`
         },
         (payload) => {
-          if (payload.eventType === "INSERT") tratarInsert(payload.new, "realtime");
-          if (payload.eventType === "UPDATE") tratarUpdate(payload.new, payload.old, "realtime");
-          if (payload.eventType === "DELETE") tratarDelete(payload.old, "realtime");
+          if (payload.eventType === "INSERT") tratarNovoPedido(payload.new, "realtime");
+          if (payload.eventType === "UPDATE") tratarAtualizacaoPedido(payload.new, payload.old, "realtime");
+          if (payload.eventType === "DELETE") tratarRemocaoPedido(payload.old, "realtime");
         }
       )
       .subscribe((status) => {
@@ -138,7 +150,7 @@
       });
   }
 
-  async function verificarPedidosNovosFallback() {
+  async function verificarPedidosNovosPorPolling() {
     if (!lojaAtual?.id || !window.supabaseClient) return;
 
     const { data, error } = await supabaseClient
@@ -150,21 +162,19 @@
       .limit(10);
 
     if (error) {
-      console.warn("[DeliveryOS Realtime] Fallback de pedidos falhou.", error);
+      console.warn("[DeliveryOS Realtime] polling falhou.", error);
       return;
     }
 
     (data || [])
       .slice()
       .reverse()
-      .forEach((pedido) => tratarInsert(pedido, "polling"));
-
-    ultimoPoll = Date.now();
+      .forEach((pedido) => tratarNovoPedido(pedido, "polling"));
   }
 
-  function iniciarFallback() {
-    if (intervaloPoll) clearInterval(intervaloPoll);
-    intervaloPoll = setInterval(verificarPedidosNovosFallback, 5000);
+  function iniciarPolling() {
+    if (intervaloPolling) clearInterval(intervaloPolling);
+    intervaloPolling = setInterval(verificarPedidosNovosPorPolling, 5000);
   }
 
   async function start() {
@@ -174,17 +184,17 @@
     lojaAtual = await obterLojaAtual();
     if (!lojaAtual?.id) return;
 
-    await carregarBasePedidosConhecidos();
+    await carregarBaseInicial();
     iniciarCanalPedidos();
-    iniciarFallback();
+    iniciarPolling();
   }
 
   function stop() {
     iniciado = false;
 
-    if (intervaloPoll) {
-      clearInterval(intervaloPoll);
-      intervaloPoll = null;
+    if (intervaloPolling) {
+      clearInterval(intervaloPolling);
+      intervaloPolling = null;
     }
 
     if (canalPedidos && window.supabaseClient) {
