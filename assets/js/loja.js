@@ -9,6 +9,23 @@ const pedidoMinimoLoja = document.getElementById("pedidoMinimoLoja");
 const taxaEntregaLoja = document.getElementById("taxaEntregaLoja");
 const lojaLogo = document.getElementById("lojaLogo");
 const lojaBanner = document.getElementById("lojaBanner");
+const tipoAtendimentoLoja = document.getElementById("tipoAtendimentoLoja");
+const enderecoLojaTopo = document.getElementById("enderecoLojaTopo");
+const telefoneLojaTopo = document.getElementById("telefoneLojaTopo");
+const horarioLojaTopo = document.getElementById("horarioLojaTopo");
+const nomeLojaRodape = document.getElementById("nomeLojaRodape");
+const descricaoLojaRodape = document.getElementById("descricaoLojaRodape");
+const enderecoLojaRodape = document.getElementById("enderecoLojaRodape");
+const telefoneLojaRodape = document.getElementById("telefoneLojaRodape");
+const horarioLojaRodape = document.getElementById("horarioLojaRodape");
+const copyrightLoja = document.getElementById("copyrightLoja");
+const formasPagamentoRodape = document.getElementById("formasPagamentoRodape");
+const instagramTopo = document.getElementById("instagramTopo");
+const whatsappTopo = document.getElementById("whatsappTopo");
+const facebookTopo = document.getElementById("facebookTopo");
+const instagramRodape = document.getElementById("instagramRodape");
+const whatsappRodape = document.getElementById("whatsappRodape");
+const facebookRodape = document.getElementById("facebookRodape");
 
 const modalProduto = document.getElementById("modalProduto");
 const fecharModalProduto = document.getElementById("fecharModalProduto");
@@ -67,6 +84,85 @@ function obterLogoLoja(loja) {
     loja?.imagem_logo ||
     ""
   );
+}
+
+function obterCampoLoja(loja, campos, fallback = "") {
+  for (const campo of campos) {
+    const valor = loja?.[campo];
+
+    if (valor !== null && valor !== undefined && String(valor).trim() !== "") {
+      return String(valor).trim();
+    }
+  }
+
+  return fallback;
+}
+
+function normalizarTelefone(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function montarEnderecoLoja(loja) {
+  const enderecoCompleto = obterCampoLoja(loja, ["endereco_completo", "endereco", "rua", "logradouro"]);
+  const numero = obterCampoLoja(loja, ["numero", "numero_endereco"]);
+  const bairro = obterCampoLoja(loja, ["bairro"]);
+  const cidade = obterCampoLoja(loja, ["cidade"]);
+  const estado = obterCampoLoja(loja, ["estado", "uf"]);
+
+  const primeiraParte = [enderecoCompleto, numero].filter(Boolean).join(", ");
+  const segundaParte = [bairro, cidade, estado].filter(Boolean).join(" - ");
+  const endereco = [primeiraParte, segundaParte].filter(Boolean).join(" • ");
+
+  return endereco || "Endereço não informado";
+}
+
+function montarHorarioLoja(loja) {
+  const horario = obterCampoLoja(loja, ["horario_atendimento", "horario", "funcionamento", "horario_funcionamento"]);
+  return horario || "Atendimento online";
+}
+
+function montarLinkRede(url) {
+  const valor = String(url || "").trim();
+
+  if (!valor) return "";
+  if (valor.startsWith("http://") || valor.startsWith("https://")) return valor;
+  if (valor.startsWith("@")) return `https://instagram.com/${valor.replace("@", "")}`;
+
+  return `https://${valor}`;
+}
+
+function atualizarLinkSocial(elemento, url) {
+  if (!elemento) return;
+
+  if (!url) {
+    elemento.classList.add("oculto");
+    elemento.removeAttribute("href");
+    return;
+  }
+
+  elemento.href = url;
+  elemento.classList.remove("oculto");
+}
+
+function montarLinkWhatsapp(numero) {
+  const telefone = normalizarTelefone(numero);
+  if (!telefone) return "";
+
+  const telefoneComPais = telefone.startsWith("55") ? telefone : `55${telefone}`;
+  return `https://wa.me/${telefoneComPais}`;
+}
+
+function renderizarPagamentosLoja(loja) {
+  if (!formasPagamentoRodape) return;
+
+  const pagamentosTexto = obterCampoLoja(loja, ["formas_pagamento", "pagamentos", "meios_pagamento"]);
+  const pagamentos = pagamentosTexto
+    ? pagamentosTexto.split(/[;,]/).map((item) => item.trim()).filter(Boolean)
+    : ["PIX", "Dinheiro", "Cartão"];
+
+  formasPagamentoRodape.innerHTML = pagamentos
+    .map((pagamento) => `<span>${pagamento}</span>`)
+    .join("");
 }
 
 function limitarTexto(texto, limite = 90) {
@@ -197,12 +293,24 @@ function aplicarDadosDaLoja(loja) {
   const aberta = loja.aberta !== false && loja.status !== "fechada";
   const logo = obterLogoLoja(loja);
   const banner = obterBannerLoja(loja);
+  const endereco = montarEnderecoLoja(loja);
+  const horario = montarHorarioLoja(loja);
+  const whatsapp = obterCampoLoja(loja, ["whatsapp", "telefone_whatsapp", "celular"]);
+  const telefone = obterCampoLoja(loja, ["telefone", "whatsapp", "celular"], "Telefone não informado");
+  const instagram = montarLinkRede(obterCampoLoja(loja, ["instagram", "instagram_url", "link_instagram"]));
+  const facebook = montarLinkRede(obterCampoLoja(loja, ["facebook", "facebook_url", "link_facebook"]));
+  const whatsappLink = montarLinkWhatsapp(whatsapp || telefone);
+  const tipoAtendimento = obterCampoLoja(loja, ["tipo_atendimento", "atendimento"], "Entrega ou retirada");
 
   document.title = `${nome} | Cardápio Online`;
 
   nomeLoja.innerText = nome;
   descricaoLoja.innerText = descricao;
   tempoEntrega.innerText = `⏱️ ${tempo} min`;
+
+  if (tipoAtendimentoLoja) {
+    tipoAtendimentoLoja.innerText = tipoAtendimento;
+  }
 
   if (pedidoMinimoLoja) {
     pedidoMinimoLoja.innerText = `Pedido mínimo: ${formatarMoedaLoja(pedidoMinimo)}`;
@@ -215,7 +323,7 @@ function aplicarDadosDaLoja(loja) {
   }
 
   if (statusLoja) {
-    statusLoja.innerText = aberta ? "Aberta" : "Fechada";
+    statusLoja.innerText = aberta ? "Aberta agora" : "Fechada";
     statusLoja.classList.toggle("aberto", aberta);
     statusLoja.classList.toggle("fechado", !aberta);
   }
@@ -229,8 +337,27 @@ function aplicarDadosDaLoja(loja) {
   }
 
   if (lojaBanner && banner) {
-    lojaBanner.style.backgroundImage = `linear-gradient(135deg, rgba(17, 24, 39, 0.62), rgba(239, 68, 68, 0.48)), url("${banner}")`;
+    lojaBanner.style.backgroundImage = `linear-gradient(115deg, rgba(6, 10, 20, 0.92), rgba(239, 68, 68, 0.55)), url("${banner}")`;
   }
+
+  if (enderecoLojaTopo) enderecoLojaTopo.innerText = `📍 ${endereco}`;
+  if (telefoneLojaTopo) telefoneLojaTopo.innerText = `☎ ${telefone}`;
+  if (horarioLojaTopo) horarioLojaTopo.innerText = `🕒 ${horario}`;
+
+  if (nomeLojaRodape) nomeLojaRodape.innerText = nome;
+  if (descricaoLojaRodape) descricaoLojaRodape.innerText = descricao || "Cardápio online seguro, rápido e fácil de usar.";
+  if (enderecoLojaRodape) enderecoLojaRodape.innerText = `📍 ${endereco}`;
+  if (telefoneLojaRodape) telefoneLojaRodape.innerText = `☎ ${telefone}`;
+  if (horarioLojaRodape) horarioLojaRodape.innerText = `🕒 ${horario}`;
+  if (copyrightLoja) copyrightLoja.innerText = `© 2026 ${nome}. Todos os direitos reservados.`;
+
+  atualizarLinkSocial(instagramTopo, instagram);
+  atualizarLinkSocial(instagramRodape, instagram);
+  atualizarLinkSocial(facebookTopo, facebook);
+  atualizarLinkSocial(facebookRodape, facebook);
+  atualizarLinkSocial(whatsappTopo, whatsappLink);
+  atualizarLinkSocial(whatsappRodape, whatsappLink);
+  renderizarPagamentosLoja(loja);
 }
 
 async function carregarCategorias() {
