@@ -9,50 +9,93 @@
 <body>
 
 <header class="loja-header">
-  <div class="loja-banner">
-    <div class="loja-info">
-      <h1 id="nomeLoja">Carregando...</h1>
-      <p id="descricaoLoja"></p>
-      <span id="tempoEntrega"></span>
+  <div class="loja-banner" id="lojaBanner">
+    <div class="loja-banner-overlay"></div>
+
+    <div class="loja-header-content">
+      <div class="loja-avatar" id="lojaLogo">D</div>
+
+      <div class="loja-info">
+        <div class="loja-status-line">
+          <span id="statusLoja" class="status-loja aberto">Aberta</span>
+          <span id="tempoEntrega">Carregando...</span>
+        </div>
+
+        <h1 id="nomeLoja">Carregando...</h1>
+        <p id="descricaoLoja"></p>
+
+        <div class="loja-meta">
+          <span id="pedidoMinimoLoja">Pedido mínimo: R$ 0,00</span>
+          <span id="taxaEntregaLoja">Entrega a combinar</span>
+        </div>
+      </div>
     </div>
   </div>
 </header>
 
 <main class="loja-container">
-  <section class="categorias-loja" id="categoriasLoja"></section>
+  <section class="busca-cardapio">
+    <div class="campo-busca">
+      <span>🔎</span>
+      <input type="text" id="buscarProdutoLoja" placeholder="Buscar produto no cardápio...">
+    </div>
+  </section>
+
+  <section class="categorias-wrapper">
+    <div class="categorias-loja" id="categoriasLoja"></div>
+  </section>
 
   <section class="produtos-loja" id="produtosLoja">
-    <p>Carregando cardápio...</p>
+    <div class="skeleton-grid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </section>
 </main>
 
 <div id="modalProduto" class="modal-produto oculto">
-  <div class="modal-produto-content">
+  <div class="modal-produto-content modal-produto-app">
     <button id="fecharModalProduto" class="fechar-modal">×</button>
 
-    <h2 id="modalProdutoNome"></h2>
-    <p id="modalProdutoDescricao"></p>
-    <strong id="modalProdutoPreco"></strong>
+    <div class="modal-produto-imagem" id="modalProdutoImagem"></div>
 
-    <div id="modalProdutoGrupos"></div>
+    <div class="modal-produto-body">
+      <div class="modal-produto-titulo">
+        <div>
+          <h2 id="modalProdutoNome"></h2>
+          <p id="modalProdutoDescricao"></p>
+        </div>
 
-    <textarea id="observacaoProduto" placeholder="Alguma observação? Ex: sem cebola"></textarea>
+        <strong id="modalProdutoPreco"></strong>
+      </div>
 
-    <div class="quantidade-box">
-      <button id="diminuirQuantidade">-</button>
-      <span id="quantidadeProduto">1</span>
-      <button id="aumentarQuantidade">+</button>
+      <div id="modalProdutoGrupos"></div>
+
+      <div class="observacao-box">
+        <label for="observacaoProduto">Observação</label>
+        <textarea id="observacaoProduto" placeholder="Ex: sem cebola, molho separado..."></textarea>
+      </div>
     </div>
 
-    <button id="adicionarCarrinho" class="btn-adicionar-carrinho">
-      Adicionar ao carrinho
-      <span id="totalProdutoModal">R$ 0,00</span>
-    </button>
+    <div class="modal-produto-footer">
+      <div class="quantidade-box">
+        <button id="diminuirQuantidade" type="button">-</button>
+        <span id="quantidadeProduto">1</span>
+        <button id="aumentarQuantidade" type="button">+</button>
+      </div>
+
+      <button id="adicionarCarrinho" class="btn-adicionar-carrinho">
+        <span>Adicionar</span>
+        <strong id="totalProdutoModal">R$ 0,00</strong>
+      </button>
+    </div>
   </div>
 </div>
 
 <div id="modalCarrinho" class="modal-produto oculto">
-  <div class="modal-produto-content">
+  <div class="modal-produto-content modal-carrinho-content">
     <button id="fecharCarrinho" class="fechar-modal">×</button>
 
     <h2>Seu carrinho</h2>
@@ -71,7 +114,7 @@
 </div>
 
 <div id="carrinhoResumo" class="carrinho-resumo oculto">
-  <div>
+  <div class="carrinho-resumo-info">
     <strong id="carrinhoQuantidade">0 itens</strong>
     <span id="carrinhoTotal">R$ 0,00</span>
   </div>
