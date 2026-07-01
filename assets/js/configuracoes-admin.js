@@ -2,6 +2,7 @@ const formConfiguracoes = document.getElementById("formConfiguracoes");
 const mensagemConfiguracoes = document.getElementById("mensagemConfiguracoes");
 const linkPublicoTexto = document.getElementById("linkPublicoTexto");
 const btnAbrirCardapio = document.getElementById("btnAbrirCardapio");
+const btnPrevisualizarCardapio = document.getElementById("btnPrevisualizarCardapio");
 const linkPublicoReal = document.getElementById("linkPublicoReal");
 const btnCopiarLinkLoja = document.getElementById("btnCopiarLinkLoja");
 const btnCompartilharLinkLoja = document.getElementById("btnCompartilharLinkLoja");
@@ -35,6 +36,15 @@ function ativarAbaConfiguracoes(nomeAba) {
 botoesAbasConfiguracoes.forEach((botao) => {
   botao.addEventListener("click", () => {
     ativarAbaConfiguracoes(botao.dataset.tab);
+  });
+});
+
+
+const linksMenuConfiguracoes = document.querySelectorAll(".config-nav a");
+linksMenuConfiguracoes.forEach((link) => {
+  link.addEventListener("click", () => {
+    linksMenuConfiguracoes.forEach((item) => item.classList.remove("ativo"));
+    link.classList.add("ativo");
   });
 });
 
@@ -246,6 +256,11 @@ function atualizarLinkPublico(slug) {
       btnAbrirCardapio.classList.add("desativado");
     }
 
+    if (btnPrevisualizarCardapio) {
+      btnPrevisualizarCardapio.href = "#";
+      btnPrevisualizarCardapio.classList.add("desativado");
+    }
+
     limparQrCode();
     return;
   }
@@ -260,6 +275,11 @@ function atualizarLinkPublico(slug) {
   if (btnAbrirCardapio) {
     btnAbrirCardapio.href = linkPublicoAtual;
     btnAbrirCardapio.classList.remove("desativado");
+  }
+
+  if (btnPrevisualizarCardapio) {
+    btnPrevisualizarCardapio.href = linkPublicoAtual;
+    btnPrevisualizarCardapio.classList.remove("desativado");
   }
 
   gerarQrCode(linkPublicoAtual);
