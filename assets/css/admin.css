@@ -1869,3 +1869,184 @@ button.salvando {
     padding: 24px;
   }
 }
+
+/* ============================================================
+   DELIVERYOS - Notificações globais de pedidos
+   ============================================================ */
+.deliveryos-audio-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(8px);
+}
+
+.deliveryos-audio-modal-card {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+}
+
+.deliveryos-audio-modal-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #fff1f2;
+  color: #e11d48;
+  font-size: 28px;
+}
+
+.deliveryos-audio-modal-card h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  color: #111827;
+}
+
+.deliveryos-audio-modal-card p {
+  margin: 0 0 20px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.deliveryos-audio-modal-card button {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  background: #111827;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.deliveryos-audio-modal-card small {
+  display: block;
+  margin-top: 12px;
+  color: #94a3b8;
+}
+
+.deliveryos-pedido-global-alert {
+  position: fixed;
+  right: 22px;
+  top: 22px;
+  z-index: 99998;
+  width: min(430px, calc(100vw - 32px));
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 20px;
+  background: #111827;
+  color: #fff;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.3);
+  transform: translateY(0);
+  opacity: 1;
+  transition: 0.2s ease;
+}
+
+.deliveryos-pedido-global-alert.oculto {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.deliveryos-pedido-global-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #ef4444;
+  font-size: 20px;
+}
+
+.deliveryos-pedido-global-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.deliveryos-pedido-global-content strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+
+.deliveryos-pedido-global-content span {
+  display: block;
+  color: #cbd5e1;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deliveryos-pedido-global-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.deliveryos-pedido-global-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+#deliveryosBtnVerPedidoGlobal {
+  background: #22c55e;
+  color: #052e16;
+}
+
+#deliveryosBtnSilenciarPedidoGlobal {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.deliveryos-audio-tap-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 99999;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #111827;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .deliveryos-pedido-global-alert {
+    top: auto;
+    right: 14px;
+    left: 14px;
+    bottom: 18px;
+    width: auto;
+  }
+
+  .deliveryos-pedido-global-actions {
+    flex-wrap: wrap;
+  }
+
+  .deliveryos-audio-modal-card {
+    padding: 24px;
+    border-radius: 22px;
+  }
+}
