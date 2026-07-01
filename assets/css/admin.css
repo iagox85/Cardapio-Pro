@@ -1538,3 +1538,122 @@ button.salvando {
     border-radius: 16px;
   }
 }
+
+
+/* =========================================================
+   DeliveryOS - Notificações globais de pedidos
+   ========================================================= */
+.deliveryos-pedido-global-alert {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9999;
+  width: min(430px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: deliveryosPedidoEntrando 0.28s ease both;
+}
+
+.deliveryos-pedido-global-alert.oculto {
+  display: none;
+}
+
+.deliveryos-pedido-global-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 22px;
+}
+
+.deliveryos-pedido-global-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.deliveryos-pedido-global-content strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+  margin-bottom: 4px;
+}
+
+.deliveryos-pedido-global-content span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.deliveryos-pedido-global-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.deliveryos-pedido-global-actions button {
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 800;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.deliveryos-pedido-global-actions button:hover {
+  transform: translateY(-1px);
+}
+
+#deliveryosBtnVerPedidoGlobal {
+  background: #ffffff;
+  color: #111827;
+}
+
+#deliveryosBtnSilenciarPedidoGlobal {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+@keyframes deliveryosPedidoEntrando {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .deliveryos-pedido-global-alert {
+    right: 12px;
+    bottom: 14px;
+    width: calc(100vw - 24px);
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .deliveryos-pedido-global-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .deliveryos-pedido-global-actions button {
+    min-height: 34px;
+    padding: 0 12px;
+  }
+}
