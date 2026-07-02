@@ -1,0 +1,114 @@
+/* ============================================================
+   DeliveryOS Componentes - Layout
+   Classes utilitárias para páginas do painel.
+   ============================================================ */
+
+.dos-page {
+  width: 100%;
+}
+
+.dos-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dos-space-5);
+  margin-bottom: var(--dos-space-5);
+}
+
+.dos-page-header__content {
+  min-width: 0;
+}
+
+.dos-page-title {
+  color: var(--dos-color-text);
+  font-size: var(--dos-font-2xl);
+  font-weight: var(--dos-font-black);
+  letter-spacing: var(--dos-letter-tight);
+  line-height: 1.12;
+}
+
+.dos-page-subtitle {
+  color: var(--dos-color-muted);
+  font-size: var(--dos-font-md);
+  font-weight: 700;
+  line-height: 1.5;
+  margin-top: var(--dos-space-2);
+}
+
+.dos-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dos-space-3);
+  flex-wrap: wrap;
+}
+
+.dos-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dos-space-4);
+}
+
+.dos-section + .dos-section {
+  margin-top: var(--dos-space-5);
+}
+
+.dos-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dos-space-4);
+}
+
+.dos-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--dos-space-3);
+  flex-wrap: wrap;
+}
+
+.dos-grid {
+  display: grid;
+  gap: var(--dos-space-4);
+}
+
+.dos-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dos-space-4);
+}
+
+.dos-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--dos-space-4);
+}
+
+.dos-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--dos-space-4);
+}
+
+.dos-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--dos-color-border);
+  margin: var(--dos-space-2) 0;
+}
+
+@media (max-width: 900px) {
+  .dos-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dos-page-actions {
+    justify-content: flex-start;
+  }
+
+  .dos-grid-2,
+  .dos-grid-3,
+  .dos-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,109 @@
+/* ============================================================
+   DeliveryOS Componentes - Botões
+   ============================================================ */
+
+.dos-btn {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dos-space-2);
+  padding: 0 var(--dos-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--dos-radius-md);
+  font-size: var(--dos-font-md);
+  font-weight: var(--dos-font-black);
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dos-btn:hover {
+  transform: translateY(-1px);
+}
+
+.dos-btn:active {
+  transform: translateY(0);
+}
+
+.dos-btn:disabled,
+.dos-btn[disabled],
+.dos-btn.is-disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.dos-btn-primary {
+  background: var(--dos-color-primary);
+  color: #fff;
+  box-shadow: var(--dos-shadow-primary);
+}
+
+.dos-btn-primary:hover {
+  background: var(--dos-color-primary-hover);
+}
+
+.dos-btn-secondary {
+  background: var(--dos-color-surface);
+  color: var(--dos-color-text);
+  border-color: var(--dos-color-border);
+  box-shadow: var(--dos-shadow-xs);
+}
+
+.dos-btn-secondary:hover {
+  background: var(--dos-color-surface-soft);
+  border-color: var(--dos-color-border-strong);
+}
+
+.dos-btn-success {
+  background: var(--dos-color-success-action);
+  color: #fff;
+  box-shadow: var(--dos-shadow-success);
+}
+
+.dos-btn-danger {
+  background: var(--dos-color-danger-action);
+  color: #fff;
+  box-shadow: var(--dos-shadow-danger);
+}
+
+.dos-btn-ghost {
+  background: transparent;
+  color: var(--dos-color-text-soft);
+  border-color: transparent;
+}
+
+.dos-btn-ghost:hover {
+  background: var(--dos-color-surface-soft);
+  color: var(--dos-color-text);
+}
+
+.dos-btn-sm {
+  min-height: 34px;
+  padding: 0 var(--dos-space-3);
+  border-radius: var(--dos-radius-sm);
+  font-size: var(--dos-font-sm);
+}
+
+.dos-btn-lg {
+  min-height: 50px;
+  padding: 0 var(--dos-space-5);
+  border-radius: var(--dos-radius-lg);
+  font-size: var(--dos-font-base);
+}
+
+.dos-btn-icon {
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
+}
+
+.dos-btn.is-loading {
+  pointer-events: none;
+  opacity: 0.78;
+}

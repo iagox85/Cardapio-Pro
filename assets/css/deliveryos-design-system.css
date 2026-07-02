@@ -8,6 +8,16 @@
    - Preparar componentes reutilizáveis sem alterar o layout existente.
    ============================================================ */
 
+
+@import url("./components/dos-layout.css");
+@import url("./components/dos-card.css");
+@import url("./components/dos-button.css");
+@import url("./components/dos-form.css");
+@import url("./components/dos-badge.css");
+@import url("./components/dos-table.css");
+@import url("./components/dos-modal.css");
+@import url("./components/dos-empty.css");
+
 :root {
   /* ==========================================================
      CORES PRINCIPAIS

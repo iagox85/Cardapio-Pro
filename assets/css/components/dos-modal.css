@@ -1,0 +1,68 @@
+/* ============================================================
+   DeliveryOS Componentes - Modal
+   ============================================================ */
+
+.dos-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--dos-space-5);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
+}
+
+.dos-modal-overlay.is-open {
+  display: flex;
+}
+
+.dos-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: var(--dos-color-surface);
+  border: 1px solid var(--dos-color-border);
+  border-radius: var(--dos-radius-2xl);
+  box-shadow: var(--dos-shadow-xl);
+  padding: var(--dos-space-5);
+}
+
+.dos-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dos-space-4);
+  margin-bottom: var(--dos-space-4);
+}
+
+.dos-modal-title {
+  color: var(--dos-color-text);
+  font-size: var(--dos-font-xl);
+  font-weight: var(--dos-font-black);
+  letter-spacing: var(--dos-letter-tight);
+}
+
+.dos-modal-description {
+  color: var(--dos-color-muted);
+  font-size: var(--dos-font-md);
+  font-weight: 700;
+  line-height: 1.5;
+  margin-top: var(--dos-space-2);
+}
+
+.dos-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dos-space-4);
+}
+
+.dos-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dos-space-3);
+  flex-wrap: wrap;
+  margin-top: var(--dos-space-5);
+}

@@ -1,0 +1,53 @@
+/* ============================================================
+   DeliveryOS Componentes - Tabelas
+   ============================================================ */
+
+.dos-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--dos-color-surface);
+  border: 1px solid var(--dos-color-border);
+  border-radius: var(--dos-radius-xl);
+  box-shadow: var(--dos-shadow-sm);
+}
+
+.dos-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.dos-table th,
+.dos-table td {
+  padding: var(--dos-space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--dos-color-border);
+  vertical-align: middle;
+}
+
+.dos-table th {
+  background: var(--dos-color-surface-soft);
+  color: var(--dos-color-muted);
+  font-size: var(--dos-font-xs);
+  font-weight: var(--dos-font-black);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dos-table td {
+  color: var(--dos-color-text-soft);
+  font-size: var(--dos-font-md);
+  font-weight: 700;
+}
+
+.dos-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.dos-table tbody tr {
+  transition: background 0.14s ease;
+}
+
+.dos-table tbody tr:hover {
+  background: var(--dos-color-bg-soft);
+}

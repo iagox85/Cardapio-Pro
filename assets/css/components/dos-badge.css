@@ -1,0 +1,48 @@
+/* ============================================================
+   DeliveryOS Componentes - Badges
+   ============================================================ */
+
+.dos-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dos-space-1);
+  min-height: 26px;
+  padding: 0 var(--dos-space-3);
+  border-radius: var(--dos-radius-pill);
+  font-size: var(--dos-font-xs);
+  font-weight: var(--dos-font-black);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dos-badge-neutral {
+  background: var(--dos-color-surface-soft);
+  color: var(--dos-color-text-soft);
+  border: 1px solid var(--dos-color-border);
+}
+
+.dos-badge-primary {
+  background: var(--dos-color-primary-soft);
+  color: var(--dos-color-primary-hover);
+}
+
+.dos-badge-success {
+  background: var(--dos-color-success-soft);
+  color: var(--dos-color-success);
+}
+
+.dos-badge-warning {
+  background: var(--dos-color-warning-soft);
+  color: var(--dos-color-warning);
+}
+
+.dos-badge-danger {
+  background: var(--dos-color-danger-soft);
+  color: var(--dos-color-danger);
+}
+
+.dos-badge-info {
+  background: var(--dos-color-info-soft);
+  color: var(--dos-color-info);
+}

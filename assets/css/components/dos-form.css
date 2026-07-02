@@ -1,0 +1,91 @@
+/* ============================================================
+   DeliveryOS Componentes - Formulários
+   ============================================================ */
+
+.dos-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dos-space-4);
+}
+
+.dos-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dos-space-4);
+}
+
+.dos-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dos-space-2);
+}
+
+.dos-label {
+  color: var(--dos-color-text-soft);
+  font-size: var(--dos-font-sm);
+  font-weight: var(--dos-font-black);
+}
+
+.dos-help {
+  color: var(--dos-color-muted);
+  font-size: var(--dos-font-xs);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.dos-input,
+.dos-select,
+.dos-textarea {
+  width: 100%;
+  min-height: 44px;
+  background: var(--dos-color-surface);
+  color: var(--dos-color-text);
+  border: 1px solid var(--dos-color-border);
+  border-radius: var(--dos-radius-md);
+  padding: 0 var(--dos-space-4);
+  font-size: var(--dos-font-md);
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.dos-textarea {
+  min-height: 110px;
+  padding-top: var(--dos-space-3);
+  padding-bottom: var(--dos-space-3);
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.dos-input::placeholder,
+.dos-textarea::placeholder {
+  color: var(--dos-color-muted-2);
+}
+
+.dos-input:focus,
+.dos-select:focus,
+.dos-textarea:focus {
+  border-color: var(--dos-color-primary);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.11);
+}
+
+.dos-input[disabled],
+.dos-select[disabled],
+.dos-textarea[disabled] {
+  background: var(--dos-color-surface-soft);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.dos-field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--dos-space-3);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 800px) {
+  .dos-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

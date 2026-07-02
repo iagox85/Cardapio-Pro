@@ -1,0 +1,93 @@
+/* ============================================================
+   DeliveryOS Componentes - Cards
+   ============================================================ */
+
+.dos-card {
+  background: var(--dos-color-surface);
+  border: 1px solid var(--dos-color-border);
+  border-radius: var(--dos-radius-xl);
+  box-shadow: var(--dos-shadow-sm);
+  padding: var(--dos-space-5);
+}
+
+.dos-card--compact {
+  padding: var(--dos-space-4);
+  border-radius: var(--dos-radius-lg);
+}
+
+.dos-card--soft {
+  background: var(--dos-color-bg-soft);
+}
+
+.dos-card--interactive {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.dos-card--interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--dos-shadow-md);
+  border-color: var(--dos-color-border-strong);
+}
+
+.dos-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dos-space-4);
+  margin-bottom: var(--dos-space-4);
+}
+
+.dos-card-title {
+  color: var(--dos-color-text);
+  font-size: var(--dos-font-lg);
+  font-weight: var(--dos-font-black);
+  letter-spacing: var(--dos-letter-tight);
+  line-height: 1.25;
+}
+
+.dos-card-subtitle {
+  color: var(--dos-color-muted);
+  font-size: var(--dos-font-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  margin-top: var(--dos-space-1);
+}
+
+.dos-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dos-space-4);
+}
+
+.dos-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dos-space-3);
+  flex-wrap: wrap;
+  margin-top: var(--dos-space-5);
+  padding-top: var(--dos-space-4);
+  border-top: 1px solid var(--dos-color-border);
+}
+
+.dos-metric-card {
+  background: var(--dos-color-surface);
+  border: 1px solid var(--dos-color-border);
+  border-radius: var(--dos-radius-xl);
+  box-shadow: var(--dos-shadow-sm);
+  padding: var(--dos-space-5);
+}
+
+.dos-metric-label {
+  color: var(--dos-color-muted);
+  font-size: var(--dos-font-sm);
+  font-weight: 800;
+}
+
+.dos-metric-value {
+  color: var(--dos-color-text);
+  font-size: var(--dos-font-2xl);
+  font-weight: var(--dos-font-black);
+  letter-spacing: var(--dos-letter-tight);
+  margin-top: var(--dos-space-2);
+}
